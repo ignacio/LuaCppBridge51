@@ -1,0 +1,12 @@
+src/Debug
+src/Release
+*.opt
+*.plg
+*.dsw
+*.user
+*.tlh
+*.tli
+*.ncb
+*.positions
+*.suo
+*.opt
