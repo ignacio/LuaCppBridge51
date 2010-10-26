@@ -25,6 +25,10 @@ herencia, se encuentra que el userdata que está en el stack no es del tipo que e
 */
 
 template <typename T> class RawObject : public BaseObject<T, RawObject<T> > {
+private:
+	typedef BaseObject<T, RawObject<T> > base_type;
+public:
+	typedef typename base_type::RegType RegType;
 public:
 	//////////////////////////////////////////////////////////////////////////
 	///
@@ -68,11 +72,11 @@ private:
 		lua_settable(L, metatable);
 		
 		lua_pushliteral(L, "__tostring");
-		lua_pushcfunction(L, tostring_T);
+		lua_pushcfunction(L, base_type::tostring_T);
 		lua_settable(L, metatable);
 		
 		lua_pushliteral(L, "__gc");
-		lua_pushcfunction(L, gc_T);
+		lua_pushcfunction(L, base_type::gc_T);
 		lua_settable(L, metatable);
 		
 		if(isCreatableByLua) {
@@ -80,17 +84,17 @@ private:
 			lua_newtable(L);				// mt for method table
 			lua_pushcfunction(L, T::new_T);
 			lua_pushvalue(L, -1);			// dup new_T function
-			set(L, methods, "new");			// add new_T to method table
-			set(L, -3, "__call");			// mt.__call = new_T
+			base_type::set(L, methods, "new");			// add new_T to method table
+			base_type::set(L, -3, "__call");			// mt.__call = new_T
 			lua_setmetatable(L, methods);
 		}
 		else {
 			// hago que llamando al nombre de la clase, me salte un error
 			lua_newtable(L);				// mt for method table
-			lua_pushcfunction(L, forbidden_new_T);
+			lua_pushcfunction(L, base_type::forbidden_new_T);
 			lua_pushvalue(L, -1);			// dup new_T function
-			set(L, methods, "new");			// add new_T to method table
-			set(L, -3, "__call");			// mt.__call = new_T
+			base_type::set(L, methods, "new");			// add new_T to method table
+			base_type::set(L, -3, "__call");			// mt.__call = new_T
 			lua_setmetatable(L, methods);
 		}
 		
@@ -98,7 +102,7 @@ private:
 		for(const RegType* l = T::methods; l->name; l++) {
 			lua_pushstring(L, l->name);
 			lua_pushlightuserdata(L, (void*)l);
-			lua_pushcclosure(L, thunk_methods, 1);
+			lua_pushcclosure(L, base_type::thunk_methods, 1);
 			lua_settable(L, methods);
 		}
 		
