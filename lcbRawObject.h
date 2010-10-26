@@ -1,7 +1,7 @@
 #ifndef __luaCppBridge_RawObject_h__
 #define __luaCppBridge_RawObject_h__
 
-#include "LuaIncludes.h"
+#include "luaIncludes.h"
 #include "lcbBaseObject.h"
 
 #define LCB_RO_DECLARE_EXPORTABLE(classname) \

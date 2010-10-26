@@ -1,7 +1,7 @@
 #ifndef __luaCppBridge_BaseObject_h__
 #define __luaCppBridge_BaseObject_h__
 
-#include "LuaIncludes.h"
+#include "luaIncludes.h"
 #include "lcbBridgeConfig.h"
 
 #if defined(ENABLE_TRACE)
