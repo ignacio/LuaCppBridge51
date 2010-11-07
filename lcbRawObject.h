@@ -27,11 +27,11 @@ template <typename T> class RawObject : public BaseObject<T, RawObject<T> > {
 public:
 	//////////////////////////////////////////////////////////////////////////
 	///
-	static void Register(lua_State* L) {
+	static void Register (lua_State* L) {
 		Register(L, true);
 	}
 
-	static void Register(lua_State* L, bool isCreatableByLua)
+	static void Register (lua_State* L, bool isCreatableByLua)
 	{
 		int libraryTable = lua_gettop(L);
 		luaL_checktype(L, libraryTable, LUA_TTABLE);	// must have library table on top of the stack
@@ -42,7 +42,7 @@ public:
 	}
 
 private:
-	static int RegisterLua(lua_State* L) {
+	static int RegisterLua (lua_State* L) {
 		luaL_checktype(L, 1, LUA_TTABLE);	// must pass a table
 		bool isCreatableByLua = lua_toboolean(L, 2) != 0;
 		
@@ -101,7 +101,7 @@ private:
 			lua_settable(L, methods);
 		}
 		
-		lua_pop(L, 2);  // drop metatable and method table
+		lua_pop(L, 2);	// drop metatable and method table
 		return 0;
 	}
 };

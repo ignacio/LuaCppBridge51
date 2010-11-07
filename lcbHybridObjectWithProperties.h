@@ -25,7 +25,7 @@ namespace LuaCppBridge {
 
 /**
 An HybridObjectWithProperties is a C++ class exposed to Lua as a table. It differs from a RawObjectWithProperties 
-in that additional methods and properties can be added dynamically.
+in that additional methods and properties can be added dynamically to its instances.
 
 There are some things to take into account.
 For instance, if a property has only a getter method, then it is read-only. Any attempt to write to it will issue an error.
@@ -46,11 +46,11 @@ public:
 public:
 	//////////////////////////////////////////////////////////////////////////
 	///
-	static void Register(lua_State* L, const char* parentClassName) {
+	static void Register (lua_State* L, const char* parentClassName) {
 		Register(L, parentClassName, true);
 	}
 
-	static void Register(lua_State* L, const char* parentClassName, bool isCreatableByLua)
+	static void Register (lua_State* L, const char* parentClassName, bool isCreatableByLua)
 	{
 		int libraryTable = lua_gettop(L);
 		luaL_checktype(L, libraryTable, LUA_TTABLE);	// must have library table on top of the stack
@@ -61,22 +61,22 @@ public:
 		lua_call(L, 3, 0);
 	}
 
-	// create a new T object and push onto the Lua stack a userdata containing a pointer to T object
-	static int new_T(lua_State* L) {
+	// create a new T object and push onto the Lua stack a table containing a userdata which itself contains a pointer to T object
+	static int new_T (lua_State* L) {
 		lua_remove(L, 1);	// use classname:new(), instead of classname.new()
 		T* obj = new T(L);	// call constructor for T objects
-		int newObject = push(L, obj, true); // gc_T will delete this object
+		int newTable = push(L, obj, true); // gc_T will delete this object
 		if(T::s_trackingEnabled) {
 			obj->KeepTrack(L);
 		}
 		
 		// if this method was called with a table as parameter, then copy its values to the newly created object
 		if(lua_gettop(L) == 2 && lua_istable(L, 1)) {
-			lua_pushnil(L);					// stack: table, newObject, nil
-			while(lua_next(L, 1)) {			// stack: table, newObject, key, value
-				lua_pushvalue(L, -2);		// stack: table, newObject, key, value, key
-				lua_insert(L, -2);			// stack: table, newObject, key, key, value
-				lua_settable(L, newObject);	// stack: table, newObject, key
+			lua_pushnil(L);
+			while(lua_next(L, 1)) {
+				lua_pushvalue(L, -2);
+				lua_insert(L, -2);
+				lua_settable(L, newTable);
 			}
 		}
 		// last step in the creation of the object. call a method that can access the userdata that will be sent 
@@ -86,8 +86,7 @@ public:
 	}
 	
 	// push onto the Lua stack a userdata containing a pointer to T object
-	// int ret = BaseObject<T, HybridObjectWithProperties<T> >::push(L, obj, gc);
-	static int push(lua_State* L, T* obj, bool gc = false) {
+	static int push (lua_State* L, T* obj, bool gc = false) {
 		if(!obj) {
 			lua_pushnil(L);
 			return 0;
@@ -98,16 +97,17 @@ public:
 		}
 		int mt = lua_gettop(L);
 		T::subtable(L, mt, "userdata", "v");
-		userdataType *ud = static_cast<userdataType*>(pushuserdata(L, obj, sizeof(userdataType)));
+		userdataType* ud = static_cast<userdataType*>(pushuserdata(L, obj, sizeof(userdataType)));
 		if(ud) {
 			// set up a table as the userdata environment
 			lua_newtable(L);
 			lua_setfenv(L, -2);
-			ud->pT = obj;  // store pointer to object in userdata
+			ud->pT = obj;	// store pointer to object in userdata
 			lua_pushvalue(L, mt);
-			lua_setmetatable(L, -2);
+			lua_setmetatable(L, -2);	// set metatable for userdata
 			ud->collectable = gc;
 		}
+		// leave userdata on top of the stack
 		lua_replace(L, mt);
 		lua_settop(L, mt);
 		return mt;	// index of userdata containing pointer to T object
@@ -115,7 +115,7 @@ public:
 
 	// push onto the Lua stack a userdata containing a pointer to T object. The object is not collectable and is unique (two 
 	// calls to push_unique will yield two different userdatas)
-	static int push_unique(lua_State* L, T* obj) {
+	static int push_unique (lua_State* L, T* obj) {
 		if(!obj) {
 			lua_pushnil(L);
 			return 0;
@@ -125,12 +125,12 @@ public:
 			luaL_error(L, "%s missing metatable", T::className);
 		}
 		int mt = lua_gettop(L);
-		userdataType *ud = static_cast<userdataType*>(lua_newuserdata(L, sizeof(userdataType)));	// create new userdata
+		userdataType* ud = static_cast<userdataType*>(lua_newuserdata(L, sizeof(userdataType)));	// create new userdata
 		if(ud) {
 			// set up a table as the userdata environment
 			lua_newtable(L);
 			lua_setfenv(L, -2);
-			ud->pT = obj;  // store pointer to object in userdata
+			ud->pT = obj;	// store pointer to object in userdata
 			ud->collectable = false;
 			lua_pushvalue(L, mt);
 			lua_setmetatable(L, -2);
@@ -147,7 +147,7 @@ protected:
 				2 = table with methods
 	initial stack: self (userdata), key
 	*/
-	static int thunk_index(lua_State* L) {
+	static int thunk_index (lua_State* L) {
 		T* obj = base_type::check(L, 1);	// get 'self', or if you prefer, 'this'
 		lua_getfenv(L, 1);					// stack: userdata, key, userdata_env
 		lua_pushvalue(L, 2);				// stack: userdata, key, userdata_env, key
@@ -164,7 +164,7 @@ protected:
 			RegType* l = static_cast<RegType*>(lua_touserdata(L, -1));
 			//lua_settop(L, 0);
 			lua_settop(L, 1);
-			return (obj->*(l->mfunc))(L);  // call member function
+			return (obj->*(l->mfunc))(L);	// call member function
 		}
 		else {
 			// not a property, look for a method
@@ -190,7 +190,7 @@ protected:
 	upvalues:	1 = table with set properties
 	initial stack: self (userdata), key, value
 	*/
-	static int thunk_newindex(lua_State* L) {
+	static int thunk_newindex (lua_State* L) {
 		T* obj = base_type::check(L, 1);	// get 'self', or if you prefer, 'this'
 
 		// look if there is a setter for 'key'
@@ -222,7 +222,7 @@ protected:
 	}
 
 private:
-	static int RegisterLua(lua_State* L) {
+	static int RegisterLua (lua_State* L) {
 		luaL_checktype(L, 1, LUA_TTABLE);	// must pass a table
 		//const char* parentClassName = luaL_optstring(L, 2, NULL);
 		bool isCreatableByLua = lua_toboolean(L, 3) != 0;
@@ -303,7 +303,7 @@ private:
 			lua_settable(L, methods);
 		}
 		
-		lua_pop(L, 2);  // drop metatable and method table
+		lua_pop(L, 2);	// drop metatable and method table
 		return 0;
 	}
 

@@ -32,7 +32,7 @@ public:
 	static bool s_trackingEnabled;
 	static int s_trackingIndex;
 
-	static void EnableTracking(lua_State* L) {
+	static void EnableTracking (lua_State* L) {
 		s_trackingEnabled = true;
 		// creates a table where we'll do the tracking of objects. The table will be weak, so Lua can 
 		// collect the objects in there.
@@ -49,8 +49,8 @@ public:
 	}
 
 	// Deals with calling new, pushing the new object to Lua and if enabled, track the object
-	static T* Construct(lua_State* L, bool gc = false) {
-		T* newObject = new T(L);  // call constructor for T objects
+	static T* Construct (lua_State* L, bool gc = false) {
+		T* newObject = new T(L);	// call constructor for T objects
 		int newTable = Base::push(L, newObject, gc); // gc_T will delete this object
 		if(s_trackingEnabled) {
 			newObject->KeepTrack(L);
@@ -60,7 +60,7 @@ public:
 	
 public:
 	// call named lua method from userdata method table
-	static int call(lua_State* L, const char* method, int nargs = 0, int nresults = LUA_MULTRET)
+	static int call (lua_State* L, const char* method, int nargs = 0, int nresults = LUA_MULTRET)
 	{
 		int base = lua_gettop(L) - nargs;	// userdata index
 		if(!checkudata(L, base, T::className)) {
@@ -84,7 +84,7 @@ public:
 	}
 	
 	// pcall named lua method from userdata method table
-	static int pcall(lua_State* L, const char* method, int nargs = 0, int nresults = LUA_MULTRET, int errfunc = 0)
+	static int pcall (lua_State* L, const char* method, int nargs = 0, int nresults = LUA_MULTRET, int errfunc = 0)
 	{
 		int base = lua_gettop(L) - nargs;	// userdata index
 		if(!checkudata(L, base, T::className)) {
@@ -103,7 +103,7 @@ public:
 		lua_insert(L, base);				// put method under userdata, args
 		// so the stack now is: method, self, args
 		
-		int status = lua_pcall(L, 1 + nargs, nresults, errfunc);  // call method
+		int status = lua_pcall(L, 1 + nargs, nresults, errfunc);	// call method
 		if(status) {
 			const char* msg = lua_tostring(L, -1);
 			if(msg == NULL) {
@@ -117,7 +117,7 @@ public:
 	}
 	
 	// push onto the Lua stack a userdata containing a pointer to T object
-	static int push(lua_State* L, T* obj, bool gc = false) {
+	static int push (lua_State* L, T* obj, bool gc = false) {
 		if(!obj) {
 			lua_pushnil(L);
 			return 0;
@@ -128,21 +128,21 @@ public:
 		}
 		int mt = lua_gettop(L);
 		subtable(L, mt, "userdata", "v");
-		userdataType *ud = static_cast<userdataType*>(pushuserdata(L, obj, sizeof(userdataType)));
+		userdataType* ud = static_cast<userdataType*>(pushuserdata(L, obj, sizeof(userdataType)));
 		if(ud) {
-			ud->pT = obj;  // store pointer to object in userdata
+			ud->pT = obj;	// store pointer to object in userdata
 			lua_pushvalue(L, mt);
 			lua_setmetatable(L, -2);
 			ud->collectable = gc;
 		}
 		lua_replace(L, mt);
 		lua_settop(L, mt);
-		return mt;  // index of userdata containing pointer to T object
+		return mt;	// index of userdata containing pointer to T object
 	}
 	
 	// push onto the Lua stack a userdata containing a pointer to T object. The object is not collectable and is unique (two 
 	// calls to push_unique will yield two different userdatas)
-	static int push_unique(lua_State* L, T* obj) {
+	static int push_unique (lua_State* L, T* obj) {
 		if(!obj) {
 			lua_pushnil(L);
 			return 0;
@@ -154,7 +154,7 @@ public:
 		int mt = lua_gettop(L);
 		userdataType *ud = static_cast<userdataType*>(lua_newuserdata(L, sizeof(userdataType)));	// create new userdata
 		if(ud) {
-			ud->pT = obj;  // store pointer to object in userdata
+			ud->pT = obj;	// store pointer to object in userdata
 			ud->collectable = false;
 			lua_pushvalue(L, mt);
 			lua_setmetatable(L, -2);
@@ -165,7 +165,7 @@ public:
 	}
 	
 	// when you push an object and you can't guarantee its lifetime, you should 'unpush' it
-	static void unpush(lua_State* L, T* obj) {
+	static void unpush (lua_State* L, T* obj) {
 		int top = lua_gettop(L);
 		if(!obj) {
 			return;
@@ -203,7 +203,7 @@ public:
 	}
 	
 	// if 'narg' is the index of a non-nil value, checks its type. Else returns NULL.
-	static T* checkopt(lua_State* L, int narg) {
+	static T* checkopt (lua_State* L, int narg) {
 		if(!lua_isnil(L, narg)) {
 			return check(L, narg);
 		}
@@ -211,17 +211,17 @@ public:
 	}
 	
 	// get userdata from Lua stack and return pointer to T object
-	static T* check(lua_State* L, int narg) {
+	static T* check (lua_State* L, int narg) {
 		userdataType* ud = static_cast<userdataType*>(checkudata(L, narg, T::className));
 		if(!ud) {
 			luaL_typerror(L, narg, T::className);
 			return NULL;
 		}
-		return ud->pT;  // pointer to T object
+		return ud->pT;	// pointer to T object
 	}
 	
 	// test if the value in the given position in the stack is a T object
-	static bool test(lua_State* L, int narg) {
+	static bool test (lua_State* L, int narg) {
 		void* p = lua_touserdata(L, narg);
 		if (p != NULL) {							/* value is a userdata? */
 			if (lua_getmetatable(L, narg)) {		/* does it have a metatable? */
@@ -237,22 +237,22 @@ public:
 	}
 
 protected:
-	static int forbidden_new_T(lua_State* L) {
+	static int forbidden_new_T (lua_State* L) {
 		luaL_error(L, "Constructing objects of type '%s' is not allowed from the Lua side", T::className);
 		return 1;
 	}
 
 	// member function dispatcher
-	static int thunk_methods(lua_State* L) {
+	static int thunk_methods (lua_State* L) {
 		// stack has userdata, followed by method args
-		T* obj = Base::check(L, 1);  // get 'self', or if you prefer, 'this'
+		T* obj = Base::check(L, 1);	// get 'self', or if you prefer, 'this'
 		// get member function from upvalue
 		RegType* l = static_cast<RegType*>(lua_touserdata(L, lua_upvalueindex(1)));
-		return (obj->*(l->mfunc))(L);  // call member function
+		return (obj->*(l->mfunc))(L);	// call member function
 	}
 	
 	// create a new T object and push onto the Lua stack a userdata containing a pointer to T object
-	static int new_T(lua_State* L) {
+	static int new_T (lua_State* L) {
 		lua_remove(L, 1);	// use classname:new(), instead of classname.new()
 		T* obj = new T(L);	// call constructor for T objects
 		push(L, obj, true);	// gc_T will delete this object
@@ -263,7 +263,7 @@ protected:
 	}
 
 	// garbage collection metamethod, comes with the userdata on top of the stack
-	static int gc_T(lua_State* L) {
+	static int gc_T (lua_State* L) {
 #ifdef ENABLE_TRACE
 		char buff[256];
 		sprintf(buff, "attempting to collect object of type '%s'\n", T::className);
@@ -281,30 +281,30 @@ protected:
 		return 0;
 	}
 	
-	static int tostring_T(lua_State* L) {
+	static int tostring_T (lua_State* L) {
 		userdataType* ud = static_cast<userdataType*>(lua_touserdata(L, 1));
 		T* obj = ud->pT;
 		lua_pushfstring(L, "%s (%p)", T::className, obj);
 		return 1;
 	}
 
-	static void set(lua_State* L, int table_index, const char* key) {
+	static void set (lua_State* L, int table_index, const char* key) {
 		lua_pushstring(L, key);
-		lua_insert(L, -2);  // swap value and key
+		lua_insert(L, -2);	// swap value and key
 		lua_settable(L, table_index);
 	}
 
-	static void weaktable(lua_State* L, const char* mode) {
+	static void weaktable (lua_State* L, const char* mode) {
 		lua_newtable(L);
-		lua_pushvalue(L, -1);  // table is its own metatable
+		lua_pushvalue(L, -1);	// table is its own metatable
 		lua_setmetatable(L, -2);
 		lua_pushliteral(L, "__mode");
 		lua_pushstring(L, mode);
-		lua_settable(L, -3);   // metatable.__mode = mode
+		lua_settable(L, -3);	// metatable.__mode = mode
 	}
 
 	// adds a weak subtable (named 'name') to the table at index 'tindex' and returns it at the top of the stack.
-	static void subtable(lua_State* L, int tindex, const char* name, const char* mode) {
+	static void subtable (lua_State* L, int tindex, const char* name, const char* mode) {
 		lua_pushstring(L, name);
 		lua_gettable(L, tindex);
 		if (lua_isnil(L, -1)) {
@@ -323,10 +323,10 @@ protected:
 		}
 	}
 
-	// if the table at the top of the stack has an userdata with a given key, puts it on the stack and returns it.
+	// if the table at the top of the stack has a userdata with a given key, puts it on the stack and returns it.
 	// else, creates a new userdata, store it in that table with the given key, puts it on the stack and returns it.
 	// (it returns non null when it has created a new userdata)
-	static void* pushuserdata(lua_State* L, void* key, size_t sz) {
+	static void* pushuserdata (lua_State* L, void* key, size_t sz) {
 		void* ud = 0;
 		lua_pushlightuserdata(L, key);
 		lua_gettable(L, -2);				// lookup[key]
@@ -344,7 +344,7 @@ protected:
 	// if the table at the top of the stack has a table with a given key and puts it on the stack.
 	// else, creates a table, store it in that table with the given key and puts it on the stack.
 	// In both cases returns the index of the stack top.
-	static int pushtable(lua_State* L, void* key) {
+	static int pushtable (lua_State* L, void* key) {
 		lua_pushlightuserdata(L, key);
 		lua_gettable(L, -2);
 		if(lua_isnil(L, -1)) {		// if not found on the table
@@ -359,14 +359,14 @@ protected:
 	}
 	
 	// like luaL_newmetatable, except it converts the key to a lightuserdata
-	static int newmetatable(lua_State* L, const char* key) {
+	static int newmetatable (lua_State* L, const char* key) {
 		lua_pushlightuserdata(L, (void*)key);
 		lua_rawget(L, LUA_REGISTRYINDEX);	/* get registry.name */
-		if (!lua_isnil(L, -1)) {  /* name already in use? */
-			return 0;  /* leave previous value on top, but return 0 */
+		if (!lua_isnil(L, -1)) {			/* name already in use? */
+			return 0;	/* leave previous value on top, but return 0 */
 		}
 		lua_pop(L, 1);
-		lua_newtable(L);  /* create metatable */
+		lua_newtable(L);	/* create metatable */
 		lua_pushlightuserdata(L, (void*)key);
 		lua_pushvalue(L, -2);
 		lua_rawset(L, LUA_REGISTRYINDEX);	/* registry.name = metatable */
@@ -376,29 +376,29 @@ protected:
 	// like luaL_checkudata, except it converts the key to a lightuserdata
 	static void* checkudata (lua_State* L, int ud, const char* key) {
 		void* p = lua_touserdata(L, ud);
-		if (p != NULL) {  /* value is a userdata? */
-			if (lua_getmetatable(L, ud)) {  /* does it have a metatable? */
+		if (p != NULL) {	/* value is a userdata? */
+			if (lua_getmetatable(L, ud)) {	/* does it have a metatable? */
 				lua_pushlightuserdata(L, (void*)key);
-				lua_rawget(L, LUA_REGISTRYINDEX);  /* get correct metatable */
-				if (lua_rawequal(L, -1, -2)) {  /* does it have the correct mt? */
-					lua_pop(L, 2);  /* remove both metatables */
+				lua_rawget(L, LUA_REGISTRYINDEX);	/* get correct metatable */
+				if (lua_rawequal(L, -1, -2)) {		/* does it have the correct mt? */
+					lua_pop(L, 2);	/* remove both metatables */
 					return p;
 				}
 			}
 		}
-		luaL_typerror(L, ud, key);  /* else error */
-		return NULL;  /* to avoid warnings */
+		luaL_typerror(L, ud, key);	/* else error */
+		return NULL;	/* to avoid warnings */
 	}
 
 	// like luaL_getmetatable, except it converts the key to a lightuserdata
-	static void getmetatable(lua_State* L, const char* key) {
+	static void getmetatable (lua_State* L, const char* key) {
 		lua_pushlightuserdata(L, (void*)key);
 		lua_rawget(L, LUA_REGISTRYINDEX);
 	}
 
 public:
 	mutable ReferenceKey m_selfReference;
-	void KeepTrack(lua_State* L) const {
+	void KeepTrack (lua_State* L) const {
 		m_selfReference = (ReferenceKey)this;
 		lua_rawgeti(L, LUA_REGISTRYINDEX, s_trackingIndex);			// stack-> self, instances
 		lua_pushlightuserdata(L, m_selfReference);	 				// uses 'this' as key // stack-> self, instances, key
@@ -407,13 +407,13 @@ public:
 		lua_pop(L, 1);												// stack-> self
 	}
 
-	ReferenceKey GetSelfReference() const {
+	ReferenceKey GetSelfReference () const {
 		return m_selfReference;
 	}
 
 	//////////////////////////////////////////////////////////////////////////
 	/// Looks for the table (or userdata) associated to a given instance of a class
-	void GetSelf(lua_State* L) {
+	void GetSelf (lua_State* L) {
 		if(!s_trackingEnabled) {
 			luaL_error(L, "class %s is not being tracked", T::className);
 		}
@@ -430,7 +430,7 @@ public:
 
 	//////////////////////////////////////////////////////////////////////////
 	/// Looks for the table or userdata associated with the given reference and leaves it on the stack
-	static void GetReference(lua_State* L, ReferenceKey key) {
+	static void GetReference (lua_State* L, ReferenceKey key) {
 #ifdef ENABLE_TRACE
 		char buffer[128];
 		const char* typeName = typeid(T).name();

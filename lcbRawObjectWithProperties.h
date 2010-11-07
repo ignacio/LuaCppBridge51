@@ -29,7 +29,7 @@ additional methods and members. Only the functions exposed from C++ will be avai
 Also, properties can be defined with setters and getters for each.
 
 TO DO:
-Inheritance won't work with this class. I couldn't make it see its parent's properties, so I disabled the whole thing.  
+Inheritance won't work with this class. I couldn't make it see its parent's properties, so I disabled the whole thing.
 */
 template <typename T> class RawObjectWithProperties : public BaseObject<T, RawObjectWithProperties<T> > {
 private:
@@ -41,11 +41,11 @@ public:
 public:
 	//////////////////////////////////////////////////////////////////////////
 	///
-	static void Register(lua_State* L) {
+	static void Register (lua_State* L) {
 		Register(L, true);
 	}
 
-	static void Register(lua_State* L, bool isCreatableByLua)
+	static void Register (lua_State* L, bool isCreatableByLua)
 	{
 		int libraryTable = lua_gettop(L);
 		luaL_checktype(L, libraryTable, LUA_TTABLE);	// must have library table on top of the stack
@@ -62,7 +62,7 @@ protected:
 				2 = table with methods
 	initial stack: self (userdata), key
 	*/
-	static int thunk_index(lua_State* L) {
+	static int thunk_index (lua_State* L) {
 		// stack: userdata, key
 		T* obj = base_type::check(L, 1); 	// get 'self', or if you prefer, 'this'
 		lua_pushvalue(L, 2);				// stack: userdata, key key
@@ -87,12 +87,12 @@ protected:
 			// stack: userdata, key, getter (RegType*)
 			RegType* l = static_cast<RegType*>(lua_touserdata(L, -1));
 			lua_settop(L, 1);
-			return (obj->*(l->mfunc))(L);  // call member function
+			return (obj->*(l->mfunc))(L);	// call member function
 		}
 		return 0;
 	}
 	
-	static int thunk_newindex(lua_State* L) {
+	static int thunk_newindex (lua_State* L) {
 		// stack: userdata, key, value
 		T* obj = base_type::check(L, 1);	// get 'self', or if you prefer, 'this'
 		lua_pushvalue(L, 2);				// stack: userdata, key, value, key
@@ -108,7 +108,7 @@ protected:
 			/*// Esto es opcional. Si lo dejo, le puedo agregar funciones
 			// a un objeto trabajando sobre una instancia, sino tengo que agregarlas
 			// a la clase
-			if(lua_type(L, 3)  == LUA_TFUNCTION) {
+			if(lua_type(L, 3) == LUA_TFUNCTION) {
 				lua_pop(L, 1);	// stack: userdata, clave, valor
 				lua_rawset(L, lua_upvalueindex(2));
 			}
@@ -121,7 +121,7 @@ protected:
 	}
 
 private:
-	static int RegisterLua(lua_State* L) {
+	static int RegisterLua (lua_State* L) {
 		luaL_checktype(L, 1, LUA_TTABLE);	// must pass a table
 		bool isCreatableByLua = lua_toboolean(L, 2) != 0;
 		
@@ -199,7 +199,7 @@ private:
 			lua_settable(L, methods);
 		}
 		
-		lua_pop(L, 2);  // drop metatable and method table
+		lua_pop(L, 2);	// drop metatable and method table
 		return 0;
 	}
 };
