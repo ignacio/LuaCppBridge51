@@ -5,11 +5,6 @@
 
 namespace LuaCppBridge {
 
-// esto esta deprecated, pero no lo puedo sacar a menos que acomode todas las librerias hechas
-typedef struct Config {
-} Config;
-extern Config g_luaCppBridge_config;
-
 static int __ActualLibraryInitialization(lua_State* L);
 
 /**
