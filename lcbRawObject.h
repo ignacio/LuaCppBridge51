@@ -8,20 +8,19 @@
 	static const LuaCppBridge::RawObject< classname >::RegType methods[];\
 	static const char* className;
 
-// acá la herencia no está andando. O saco el check() que chequea el tipo de userdata o hago algún injerto raro
+// No inheritance here... check() is the culprit...
 
 namespace LuaCppBridge {
 
 /**
-Un RawObject es una clase de C++ expuesta hacia Lua como un userdata. 
-Esto impide que desde Lua se agreguen cosas. Sólo se pueden utilizar las funciones provistas 
-desde C++.
+A RawObject is a C++ class exposed to Lua as a userdata. This prevents us from adding additional methods and members. Only 
+the functions exposed from C++ will be available.
 
-TO-DO:
-Con esta clase NO se puede hacer herencia. Cuando se llama al método 'check', en los casos que hay 
-herencia, se encuentra que el userdata que está en el stack no es del tipo que espera y falla. Habría que:
-- eliminar ese chequeo (contra: puedo mandar cualquier fruta ahí y se reventaría por otro lado) o
-- controlar que el tipo del userdata corresponda con un tipo que esté en la jerarquía de herencia
+TO DO:
+Inheritance won't work with this class. The 'check' method when used with inheritance will fail because the userdata on the stack
+is not what it is expecting and fails. So, we could:
+- remove the check (con: it could blow up if called with userdata belonging to a different class) or
+- check against some kind of type hierarchy
 */
 
 template <typename T> class RawObject : public BaseObject<T, RawObject<T> > {
@@ -76,7 +75,7 @@ private:
 		lua_settable(L, metatable);
 		
 		if(isCreatableByLua) {
-			// hago que llamando al nombre de la clase, me construya un objeto
+			// Make Classname() and Classname:new() construct an instance of this class
 			lua_newtable(L);				// mt for method table
 			lua_pushcfunction(L, T::new_T);
 			lua_pushvalue(L, -1);			// dup new_T function
@@ -85,7 +84,7 @@ private:
 			lua_setmetatable(L, methods);
 		}
 		else {
-			// hago que llamando al nombre de la clase, me salte un error
+			// Both Make Classname() and Classname:new() will issue an error
 			lua_newtable(L);				// mt for method table
 			lua_pushcfunction(L, forbidden_new_T);
 			lua_pushvalue(L, -1);			// dup new_T function
@@ -103,7 +102,6 @@ private:
 		}
 		
 		lua_pop(L, 2);  // drop metatable and method table
-		
 		return 0;
 	}
 };

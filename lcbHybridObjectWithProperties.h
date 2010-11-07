@@ -11,7 +11,7 @@
 	static const char* className;
 
 /**
-Algunos macros útiles más que nada para la definición de propiedades.
+Some useful macros when defining properties.
 */
 #define LCB_DECL_SETGET(fieldname) int set_##fieldname (lua_State* L); int get_##fieldname (lua_State*L);
 #define LCB_DECL_GET(fieldname) int get_##fieldname (lua_State* L);
@@ -24,22 +24,17 @@ Algunos macros útiles más que nada para la definición de propiedades.
 namespace LuaCppBridge {
 
 /**
-Un HybridObjectWithProperties es una clase de C++ expuesta hacia Lua como un userdata. A diferencia de 
-RawObjectWithProperties, se pueden agregar propiedades dinámicamente, como si fuese una tabla. Estas viven 
-en una tabla aparte (vinculada al userdata).
+An HybridObjectWithProperties is a C++ class exposed to Lua as a table. It differs from a RawObjectWithProperties 
+in that additional methods and properties can be added dynamically.
 
-Esta clase tiene sutilezas. 
-Por ejemplo, si para una property solo definimos un getter, entonces es de solo lectura. En ese caso escribir en 
-esa property va a dar error.
-Desde Lua va a ocurrir lo siguiente:
-print(obj.test) -- gives the 'internal' value
-obj.test = "something"	-- error!
+There are some things to take into account.
+For instance, if a property has only a getter method, then it is read-only. Any attempt to write to it will issue an error.
+    print(obj.test) -- gives the 'internal' value
+    obj.test = "something"	-- error!
 
 
-TO-DO:
-Con esta clase NO se puede hacer herencia. Desde Lua no logré que se viesen las propiedades del padre. 
-Sí conseguí que se pudiese acceder a los métodos del padre nomás, pero no tenía sentido habilitarlo si no se 
-puede acceder a las propiedades.
+TO DO:
+Inheritance won't work with this class. I couldn't make it see its parent's properties, so I disabled the whole thing.
 */
 template <typename T> class HybridObjectWithProperties : public BaseObject<T, HybridObjectWithProperties<T> > {
 private:
@@ -84,7 +79,6 @@ public:
 				lua_settable(L, newObject);	// stack: table, newObject, key
 			}
 		}
-		
 		// last step in the creation of the object. call a method that can access the userdata that will be sent 
 		// back to Lua
 		obj->PostConstruct(L);
@@ -182,8 +176,8 @@ protected:
 				return 1;
 			}
 			else {
-				// Aca debería seguir buscando para arriba en la metatabla del padre (si es que estoy)
-				// heredando, pero NPI de cómo se hace, así que queda por esta
+				// I should keep looking up in the parent's metatable, (if I'm inheriting something) but I don't know how its done, 
+				// so let's leave it this way :)
 				lua_pushnil(L);
 				return 1;
 			}
@@ -283,16 +277,16 @@ private:
 		base_type::set(L, metatable, "__gc");
 		
 		if(isCreatableByLua) {
-			// hago que llamando al nombre de la clase, me construya un objeto
-			lua_newtable(L);				// mt for method table
+			// Make Classname() and Classname:new() construct an instance of this class
+			lua_newtable(L);							// mt for method table
 			lua_pushcfunction(L, T::new_T);
-			lua_pushvalue(L, -1);			// dup new_T function
+			lua_pushvalue(L, -1);						// dup new_T function
 			base_type::set(L, methods, "new");			// add new_T to method table
 			base_type::set(L, -3, "__call");			// mt.__call = new_T
 			lua_setmetatable(L, methods);
 		}
 		else {
-			// hago que llamando al nombre de la clase, me salte un error
+			// Both Make Classname() and Classname:new() will issue an error
 			lua_newtable(L);							// mt for method table
 			lua_pushcfunction(L, base_type::forbidden_new_T);
 			lua_pushvalue(L, -1);						// dup new_T function
@@ -308,8 +302,8 @@ private:
 			lua_pushcclosure(L, base_type::thunk_methods, 1);
 			lua_settable(L, methods);
 		}
+		
 		lua_pop(L, 2);  // drop metatable and method table
-
 		return 0;
 	}
 

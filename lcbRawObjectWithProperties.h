@@ -11,7 +11,7 @@
 	static const char* className;
 
 /**
-Algunos macros útiles más que nada para la definición de propiedades.
+Some useful macros when defining properties.
 */
 #define LCB_DECL_SETGET(fieldname) int set_##fieldname (lua_State* L); int get_##fieldname (lua_State*L);
 #define LCB_DECL_GET(fieldname) int get_##fieldname (lua_State* L);
@@ -24,16 +24,12 @@ Algunos macros útiles más que nada para la definición de propiedades.
 namespace LuaCppBridge {
 
 /**
-Un RawObjectWithProperties es una clase de C++ expuesta hacia Lua como un userdata. 
-Esto impide que desde Lua se agreguen cosas. Sólo se pueden utilizar las funciones provistas 
-desde C++. Además, se puede definir un conjunto de propiedades (con sus respectivos 
-setters y getters) para acceder desde Lua.
+A RawObjectWithProperties is a C++ class exposed to Lua as a userdata. This prevents us from adding 
+additional methods and members. Only the functions exposed from C++ will be available.
+Also, properties can be defined with setters and getters for each.
 
-TO-DO:
-Con esta clase NO se puede hacer herencia. Desde Lua no logré que se viesen las propiedades del padre. 
-Sí conseguí que se pudiese acceder a los métodos del padre nomás, pero no tenía sentido habilitarlo si no se 
-puede acceder a las propiedades.
-Y en el caso que pudiese lograrlo, hay que aplicar el arreglo que se haga a RawObject.
+TO DO:
+Inheritance won't work with this class. I couldn't make it see its parent's properties, so I disabled the whole thing.  
 */
 template <typename T> class RawObjectWithProperties : public BaseObject<T, RawObjectWithProperties<T> > {
 private:
@@ -67,32 +63,29 @@ protected:
 	initial stack: self (userdata), key
 	*/
 	static int thunk_index(lua_State* L) {
-		// stack: userdata, clave
-		T* obj = base_type::check(L, 1);  // get 'self', or if you prefer, 'this'
-		lua_pushvalue(L, 2);	// stack: userdata, clave clave
-		lua_rawget(L, lua_upvalueindex(1));	// upvalue 1 = tabla con getters
-		if(lua_isnil(L, -1)) {	// no es una propiedad, buscar en los métodos
-			lua_pop(L, 1);	// stack: userdata, clave (argumentos??)
-			lua_pushvalue(L, 2);	// userdata, clave, argumentos ... clave
+		// stack: userdata, key
+		T* obj = base_type::check(L, 1); 	// get 'self', or if you prefer, 'this'
+		lua_pushvalue(L, 2);				// stack: userdata, key key
+		lua_rawget(L, lua_upvalueindex(1));	// upvalue 1 = getters table
+		if(lua_isnil(L, -1)) {				// not a property, look for a method
+			lua_pop(L, 1);					// stack: userdata, key (arguments??)
+			lua_pushvalue(L, 2);			// userdata, key, argumentos ... key
 			lua_rawget(L, lua_upvalueindex(2));
 			if(!lua_isnil(L, -1)) {
-				// le dejo la función thunk en el stack y que lua la llame
-				// no la puedo llamar derecho porque patea (con que intenté indexar un string o algo así)
+				// leave the thunk on the stack so Lua will call it
 				return 1;
 			}
 			else {
 				lua_pop(L, 1);
-				// Aca debería seguir buscando para arriba en la metatabla del padre (si es que estoy)
-				// heredando, pero NPI de cómo se hace, así que queda por esta
-				// Mando un error y que se vayan a cagar
-				luaL_error(L, "__index: el valor '%s' no existe", lua_tostring(L, 2));
-				return 1; // para que el compilador no joda
+				// I should keep looking up in the parent's metatable, (if I'm inheriting something) but I don't know how its done
+				// Issue an error
+				luaL_error(L, "__index: the value '%s' does not exist", lua_tostring(L, 2));
+				return 1; // shut up the compiler
 			}
 		}
 		else {
 			// stack: userdata, key, getter (RegType*)
 			RegType* l = static_cast<RegType*>(lua_touserdata(L, -1));
-			//lua_settop(L, 0);
 			lua_settop(L, 1);
 			return (obj->*(l->mfunc))(L);  // call member function
 		}
@@ -100,10 +93,10 @@ protected:
 	}
 	
 	static int thunk_newindex(lua_State* L) {
-		// stack: userdata, clave, valor
-		T* obj = base_type::check(L, 1);  // get 'self', or if you prefer, 'this'
-		lua_pushvalue(L, 2);	// stack: userdata, clave, valor, clave
-		lua_rawget(L, lua_upvalueindex(1));	// upvalue 1 = tabla con setters
+		// stack: userdata, key, value
+		T* obj = base_type::check(L, 1);	// get 'self', or if you prefer, 'this'
+		lua_pushvalue(L, 2);				// stack: userdata, key, value, key
+		lua_rawget(L, lua_upvalueindex(1));	// upvalue 1 = setters table
 		if(!lua_isnil(L, -1)) {
 											// stack: userdata, key, value, setter
 			RegType* p = static_cast<RegType*>(lua_touserdata(L, -1));
@@ -180,7 +173,7 @@ private:
 		base_type::set(L, metatable, "__gc");
 		
 		if(isCreatableByLua) {
-			// hago que llamando al nombre de la clase, me construya un objeto
+			// Make Classname() and Classname:new() construct an instance of this class
 			lua_newtable(L);							// mt for method table
 			lua_pushcfunction(L, T::new_T);
 			lua_pushvalue(L, -1);						// dup new_T function
@@ -189,7 +182,7 @@ private:
 			lua_setmetatable(L, methods);
 		}
 		else {
-			// hago que llamando al nombre de la clase, me salte un error
+			// Both Make Classname() and Classname:new() will issue an error
 			lua_newtable(L);							// mt for method table
 			lua_pushcfunction(L, base_type::forbidden_new_T);
 			lua_pushvalue(L, -1);						// dup new_T function

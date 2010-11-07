@@ -18,6 +18,7 @@ Initializes the library. Leaves a table on top of the stack where we'll put the 
 static void InitializeBridge(lua_State* L, const char* libraryName, const luaL_Reg* reg = NULL)
 {
 	// since we're setting an environment, we need to call through Lua to set it up
+	// Maybe drop this some time? won't work with coroutines
 	lua_pushcfunction(L, __ActualLibraryInitialization);
 	lua_pushstring(L, libraryName);
 	lua_pushlightuserdata(L, (void*)reg);
@@ -26,7 +27,7 @@ static void InitializeBridge(lua_State* L, const char* libraryName, const luaL_R
 
 //////////////////////////////////////////////////////////////////////////
 /// This method should not be used unless necessary (compatibility with older code)
-/// Copies al method from the library to the global table
+/// Copies all methods from the library to the global table
 /// The library table must be at the top of the stack
 static void ExposeAsGlobal(lua_State* L) {
 	int libraryTable = lua_gettop(L);

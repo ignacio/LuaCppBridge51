@@ -11,9 +11,8 @@
 namespace LuaCppBridge {
 
 /**
-Un HybridObject es una clase de C++ expuesta hacia Lua como un userdata. A diferencia de 
-RawObject, se pueden agregar propiedades dinámicamente, como si fuese una tabla. Estas viven 
-en una tabla aparte (vinculada al userdata).
+An HybridObject is a C++ class exposed to Lua as a table. It differs from a RawObject in that 
+additional methods and members can be added dynamically.
 */
 template <class T> class HybridObject : public BaseObject<T, HybridObject<T> > {
 private:
@@ -85,9 +84,9 @@ public:
 	// call named lua method from userdata method table
 	static int call(lua_State* L, const char* method, int nargs = 0, int nresults = LUA_MULTRET)
 	{
-		int base = lua_gettop(L) - nargs;  // userdata index
+		int base = lua_gettop(L) - nargs;	// userdata index
 		if(!lua_istable(L, base)) {
-			lua_settop(L, base-1);           // drop table and args
+			lua_settop(L, base-1);			// drop table and args
 			luaL_error(L, "not a valid %s table", T::className);
 			return -1;
 		}
@@ -119,28 +118,28 @@ public:
 		// stack: metatabla
 		int metatable = lua_gettop(L);
 		base_type::subtable(L, metatable, "userdata", "v");
-		// stack: metatabla, tabla userdata
-		int newTable = pushtable(L, obj);	// pongo la tabla que le voy a devolver a Lua en el Stack
-		// stack: metatabla, tabla userdata, tabla nueva
-		lua_pushnumber(L, 0);	// y en el índice 0 guardo un puntero al objeto
+		// stack: metatable, table userdata
+		int newTable = pushtable(L, obj);	// push the table I'll return to Lua on the stack
+		// stack: metatable, table userdata, new tabla
+		lua_pushnumber(L, 0);	// store a pointer to the object at index 0
 		
-		// creo un userdata, cuyo valor es un wrapper liviano a mi objeto
+		// create a userdata, whose content is a lightweight wrapper to my object
 		ObjectWrapper* wrapper = static_cast<ObjectWrapper*>(lua_newuserdata(L, sizeof(ObjectWrapper)));
 		wrapper->wrappedObject = obj;
 		wrapper->collectable = gc;
 		
-		// y le asigno la metatabla (solo me interesa el método __gc)
+		// set its metatable (I'm only interested in the __gc method)
 		lua_pushvalue(L, metatable);
 		lua_setmetatable(L, -2);
 		
 		lua_settable(L, newTable);
 		
-		lua_pushvalue(L, metatable);	// copio la metatabla
-		lua_setmetatable(L, -2);		// y la asigno como metatable a la tabla Lua
+		lua_pushvalue(L, metatable);	// copy the metatable
+		lua_setmetatable(L, -2);		// and use it as metatable for the Lua table
 		
-		lua_replace(L, metatable); // dejo la tabla nueva en lugar de la metatabla en el stack
+		lua_replace(L, metatable); 		// put the new table in place of the metatable on the stack
 		lua_settop(L, metatable);
-		return metatable;  // index of new table
+		return metatable;  				// index of new table
 	}
 	
 	// get userdata from Lua stack and return pointer to T object
@@ -180,29 +179,29 @@ public:
 protected:
 	// create a new T object and push onto the Lua stack a userdata containing a pointer to T object
 	static int new_T(lua_State* L) {
-		lua_remove(L, 1);   // use classname:new(), instead of classname.new()
-		T* obj = new T(L);  // call constructor for T objects
+		lua_remove(L, 1);	// use classname:new(), instead of classname.new()
+		T* obj = new T(L);	// call constructor for T objects
 		int newTable = push(L, obj, true); // gc_T will delete this object
 		if(base_type::s_trackingEnabled) {
 			obj->KeepTrack(L);
 		}
 		
-		// si me llamaron con una tabla como parámetro, copio los valores de la misma a la nueva tabla
+		// if this method was called with a table as parameter, then copy its values to the newly created object
 		if(lua_gettop(L) == 2 && lua_istable(L, 1)) {
 			lua_pushnil(L);
-			while(lua_next(L, 1)) { // stack: tabla, clave, valor
-				lua_pushvalue(L, -2);	// stack: tabla, clave, valor, clave
-				lua_insert(L, -2);		// stack: tabla, clave, clave, valor
-				lua_settable(L, newTable);	// stack: tabla, clave
+			while(lua_next(L, 1)) { 		// stack: table, key, value
+				lua_pushvalue(L, -2);		// stack: table, key, value, key
+				lua_insert(L, -2);			// stack: table, key, key, value
+				lua_settable(L, newTable);	// stack: table, key
 			}
 		}
-		// un último paso en la creación del objeto. llamo a un método para que pueda acceder a la tabla
-		// que se la va a pasar a Lua
+		// last step in the creation of the object. call a method that can access the userdata that will be sent 
+		// back to Lua
 		obj->PostConstruct(L);
 		return 1;
 	}
 
-	// garbage collection metamethod, viene con un userdata al tope del stack
+	// garbage collection metamethod, comes with the userdata on top of the stack
 	static int gc_T(lua_State* L) {
 #ifdef ENABLE_TRACE
 	char buff[256];
@@ -221,7 +220,7 @@ protected:
 	}
 	
 	static int tostring_T(lua_State* L) {
-		// cuidado, tanto el userdata como la tabla comparten este método
+		// watch out, both the userdata and the table share this method
 		char buff[32];
 		if(lua_istable(L, 1)) {
 			lua_pushnumber(L, 0);
@@ -266,19 +265,19 @@ private:
 		base_type::set(L, metatable, "__gc");
 			
 		if(isCreatableByLua) {
-			// hago que llamando al nombre de la clase, me construya un objeto
-			lua_newtable(L);				// mt for method table
+			// Make Classname() and Classname:new() construct an instance of this class
+			lua_newtable(L);							// mt for method table
 			lua_pushcfunction(L, T::new_T);
-			lua_pushvalue(L, -1);			// dup new_T function
+			lua_pushvalue(L, -1);						// dup new_T function
 			base_type::set(L, methods, "new");			// add new_T to method table
 			base_type::set(L, -3, "__call");			// mt.__call = new_T
 			lua_setmetatable(L, methods);
 		}
 		else {
-			// hago que llamando al nombre de la clase, me salte un error
-			lua_newtable(L);				// mt for method table
+			// Both Make Classname() and Classname:new() will issue an error
+			lua_newtable(L);							// mt for method table
 			lua_pushcfunction(L, base_type::forbidden_new_T);
-			lua_pushvalue(L, -1);			// dup new_T function
+			lua_pushvalue(L, -1);						// dup new_T function
 			base_type::set(L, methods, "new");			// add new_T to method table
 			base_type::set(L, -3, "__call");			// mt.__call = new_T
 			lua_setmetatable(L, methods);
@@ -291,11 +290,11 @@ private:
 			lua_pushcclosure(L, base_type::thunk_methods, 1);
 			lua_settable(L, methods);
 		}
-		// si indican el nombre de una clase padre, engancho la herencia (simple)
+		// If a parent class was supplied, make it inherit from it
 		if(parentClassName) {
-			// hago esto:
+			// do this:
 			// getmetatable(T::className).__index = className
-			// ej: getmetatable(VbButton).__index = CVbCtrlObj
+			// ie: getmetatable(VbButton).__index = CVbCtrlObj
 			lua_getmetatable(L, methods);
 			lua_pushliteral(L, "__index");
 			lua_getfield(L, whereToRegister, parentClassName);

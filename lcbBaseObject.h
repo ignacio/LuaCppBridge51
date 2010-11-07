@@ -13,11 +13,11 @@ namespace LuaCppBridge {
 typedef void* ReferenceKey;
 
 /**
-A BaseObject es the base class for Lua wrappers.
+BaseObject is the base class for Lua wrappers.
 It is instanced with T (the class to export) and Base (the wrapper to use).
 
-For all created objects a reference could be stored in Lua, so that when the C++ needs to retrieve a reference to it can call GetSelf.
-This behaviour is disabled by default. When needed, just call Class::EnableTracking() before Class::Register()
+For all created objects a reference can be stored in Lua, so that when the C++ side needs to retrieve a reference to it can call GetSelf.
+This behaviour is disabled by default. If needed, just call Class::EnableTracking() before Class::Register()
 */
 template <typename T, typename Base>
 class BaseObject {
@@ -41,14 +41,14 @@ public:
 		lua_pushvalue(L, weakTable);	// table is its own metatable
 		
 		lua_pushliteral(L, "__mode");
-		lua_pushliteral(L, "v");	// los objetos en la tabla tienen referencias débiles
+		lua_pushliteral(L, "v");	// objects in this table have weak references
 		lua_settable(L, weakTable);
 		lua_setmetatable(L, weakTable);
 		
 		s_trackingIndex = luaL_ref(L, LUA_REGISTRYINDEX);
 	}
 
-	// Deals with alling new, pushing the new objeto to Lua and if enabled, track the object
+	// Deals with calling new, pushing the new object to Lua and if enabled, track the object
 	static T* Construct(lua_State* L, bool gc = false) {
 		T* newObject = new T(L);  // call constructor for T objects
 		int newTable = Base::push(L, newObject, gc); // gc_T will delete this object
@@ -164,7 +164,7 @@ public:
 		return mt;	// index of userdata containing pointer to T object
 	}
 	
-	// when you do a push obj an object and you can't guarantee its lifetime, you should 'unpush' it
+	// when you push an object and you can't guarantee its lifetime, you should 'unpush' it
 	static void unpush(lua_State* L, T* obj) {
 		int top = lua_gettop(L);
 		if(!obj) {
@@ -262,7 +262,7 @@ protected:
 		return 1;			// userdata containing pointer to T object
 	}
 
-	// garbage collection metamethod, viene con un userdata al tope del stack
+	// garbage collection metamethod, comes with the userdata on top of the stack
 	static int gc_T(lua_State* L) {
 #ifdef ENABLE_TRACE
 		char buff[256];
