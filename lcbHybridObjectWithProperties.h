@@ -265,10 +265,10 @@ private:
 			lua_pushlightuserdata(L, (void*)(setter));	// getters, "__newindex", setters, name, property implementation
 			lua_settable(L, newindex);					// getters, "__newindex", setters
 		}
-		lua_pushvalue(L, getters_index);		// getters, "__newindex", setters, getters
-		lua_pushcclosure(L, thunk_newindex, 2);	// getters, "__newindex", thunk
-		lua_settable(L, metatable);				// getters
-		lua_pop(L, 1);	// remove the getters table
+		lua_pushvalue(L, getters_index);				// getters, "__newindex", setters, getters
+		lua_pushcclosure(L, thunk_newindex, 2);			// getters, "__newindex", thunk
+		lua_settable(L, metatable);						// getters
+		lua_pop(L, 1);									// remove the getters table
 		
 		lua_pushcfunction(L, T::tostring_T);
 		base_type::set(L, metatable, "__tostring");
