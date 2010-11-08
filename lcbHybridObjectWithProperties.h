@@ -156,6 +156,8 @@ protected:
 	static int thunk_index(lua_State* L) {
 		T* obj = base_type::check(L, 1);	// get 'self', or if you prefer, 'this'
 		lua_getfenv(L, 1);					// stack: userdata, key, userdata_env
+
+		// Look in the userdata's environment
 		lua_pushvalue(L, 2);				// stack: userdata, key, userdata_env, key
 		lua_rawget(L, 3);
 		if(!lua_isnil(L, -1)) {
@@ -163,27 +165,28 @@ protected:
 			return 1;
 		}
 		lua_pop(L, 2);					// stack: userdata, key
+
+		// Look in getters table
 		lua_pushvalue(L, 2);			// stack: userdata, key, key
 		lua_rawget(L, lua_upvalueindex(1));
 		if(!lua_isnil(L, -1)) {			// found a property
 			// stack: userdata, key, getter (RegType*)
 			RegType* l = static_cast<RegType*>(lua_touserdata(L, -1));
-			//lua_settop(L, 0);
 			lua_settop(L, 1);
 			return (obj->*(l->mfunc))(L);  // call member function
 		}
 		else {
-			// not a property, look for a method
 			lua_pop(L, 1);				// stack: userdata, key
 			lua_pushvalue(L, 2);		// stack: userdata, key, key
-			lua_rawget(L, lua_upvalueindex(2));
+			
+			// not a property, look for a method up the inheritance hierarchy
+			lua_gettable(L, lua_upvalueindex(2));
 			if(!lua_isnil(L, -1)) {
 				// found the method, return it
 				return 1;
 			}
 			else {
-				// Aca debería seguir buscando para arriba en la metatabla del padre (si es que estoy)
-				// heredando, pero NPI de cómo se hace, así que queda por esta
+				// nothing was found
 				lua_pushnil(L);
 				return 1;
 			}
