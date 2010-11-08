@@ -163,7 +163,6 @@ public:
 		if(!pT) {
 			luaL_typerror(L, narg, T::className);
 		}
-		lua_pop(L, 1);
 		return pT;	// pointer to T object
 	}
 
@@ -213,6 +212,56 @@ protected:
 		return 1;
 	}*/
 
+	/**
+	__index metamethod. Looks for a a dynamic property, then for a method.
+	upvalues:
+			1 = table with methods
+	initial stack: self (userdata), key
+	*/
+	static int thunk_index(lua_State* L) {
+		T* obj = base_type::check(L, 1);	// get 'self', or if you prefer, 'this'
+		lua_getfenv(L, 1);					// stack: userdata, key, userdata_env
+
+		// Look in the userdata's environment
+		lua_pushvalue(L, 2);				// stack: userdata, key, userdata_env, key
+		lua_rawget(L, 3);
+		if(!lua_isnil(L, -1)) {
+			// found something, return it
+			return 1;
+		}
+		lua_pop(L, 2);					// stack: userdata, key
+
+		lua_pushvalue(L, 2);		// stack: userdata, key, key
+		
+		// not a property, look for a method up the inheritance hierarchy
+		lua_gettable(L, lua_upvalueindex(1));
+		if(!lua_isnil(L, -1)) {
+			// found the method, return it
+			return 1;
+		}
+		else {
+			// nothing was found
+			lua_pushnil(L);
+			return 1;
+		}
+		return 0;
+	}
+
+	/**
+	__newindex metamethod. Looks for a set property, else it sets the value as a dynamic property.
+	upvalues:	1 = table with set properties
+	initial stack: self (userdata), key, value
+	*/
+	static int thunk_newindex (lua_State* L) {
+		T* obj = base_type::check(L, 1);	// get 'self', or if you prefer, 'this'
+
+		lua_getfenv(L, 1);				// stack: userdata, key, value, userdata_env
+		lua_replace(L, 1);				// stack: userdata_env, key, value
+		lua_rawset(L, 1);
+		
+		return 0;
+	}
+
 private:
 	static int RegisterLua (lua_State* L) {
 		luaL_checktype(L, 1, LUA_TTABLE);	// must pass a table
@@ -235,8 +284,13 @@ private:
 		lua_pushvalue(L, methods);
 		lua_setfield(L, metatable, "__metatable");
 			
+		// set __index and __newindex metamethods
 		lua_pushvalue(L, methods);
+		lua_pushcclosure(L, thunk_index, 1);
 		base_type::set(L, metatable, "__index");
+
+		lua_pushcfunction(L, thunk_newindex);
+		base_type::set(L, metatable, "__newindex");
 			
 		lua_pushcfunction(L, T::tostring_T);
 		base_type::set(L, metatable, "__tostring");
