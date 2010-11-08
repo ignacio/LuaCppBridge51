@@ -180,40 +180,8 @@ public:
 	}
 	
 protected:
-	// garbage collection metamethod, comes with the userdata on top of the stack
-	/*static int gc_T (lua_State* L) {
-#ifdef ENABLE_TRACE
-	char buff[256];
-		sprintf(buff, "attempting to collect object of type '%s'\n", T::className);
-		OutputDebugString(buff);
-#endif
-		ObjectWrapper* wrapper = static_cast<ObjectWrapper*>(lua_touserdata(L, -1));
-		if(wrapper->collectable && wrapper->wrappedObject) {
-#ifdef ENABLE_TRACE
-			sprintf(buff, "collected %s (%p)\n", T::className, wrapper->wrappedObject);
-			OutputDebugString(buff);
-#endif
-			delete wrapper->wrappedObject;	// call destructor for wrapped objects
-		}
-		return 0;
-	}*/
-	
-	/*static int tostring_T (lua_State* L) {
-		// watch out, both the userdata and the table share this method
-		char buff[32];
-		if(lua_istable(L, 1)) {
-			lua_pushnumber(L, 0);
-			lua_rawget(L, 1);
-			luaL_checktype(L, -1, LUA_TUSERDATA);
-		}
-		const T* pT = static_cast<ObjectWrapper*>(lua_touserdata(L, -1))->wrappedObject;
-		sprintf(buff, "%p", pT);
-		lua_pushfstring(L, "%s (%s)", T::className, buff);
-		return 1;
-	}*/
-
 	/**
-	__index metamethod. Looks for a a dynamic property, then for a method.
+	__index metamethod. Looks for a dynamic property, then for a method.
 	upvalues:
 			1 = table with methods
 	initial stack: self (userdata), key
@@ -229,9 +197,9 @@ protected:
 			// found something, return it
 			return 1;
 		}
-		lua_pop(L, 2);					// stack: userdata, key
+		lua_pop(L, 2);						// stack: userdata, key
 
-		lua_pushvalue(L, 2);		// stack: userdata, key, key
+		lua_pushvalue(L, 2);				// stack: userdata, key, key
 		
 		// not a property, look for a method up the inheritance hierarchy
 		lua_gettable(L, lua_upvalueindex(1));
@@ -249,14 +217,13 @@ protected:
 
 	/**
 	__newindex metamethod. Looks for a set property, else it sets the value as a dynamic property.
-	upvalues:	1 = table with set properties
 	initial stack: self (userdata), key, value
 	*/
 	static int thunk_newindex (lua_State* L) {
 		T* obj = base_type::check(L, 1);	// get 'self', or if you prefer, 'this'
 
-		lua_getfenv(L, 1);				// stack: userdata, key, value, userdata_env
-		lua_replace(L, 1);				// stack: userdata_env, key, value
+		lua_getfenv(L, 1);					// stack: userdata, key, value, userdata_env
+		lua_replace(L, 1);					// stack: userdata_env, key, value
 		lua_rawset(L, 1);
 		
 		return 0;
