@@ -23,6 +23,7 @@ is not what it is expecting and fails. So, we could:
 - check against some kind of type hierarchy
 */
 
+
 template <typename T> class RawObject : public BaseObject<T, RawObject<T> > {
 private:
 	typedef BaseObject<T, RawObject<T> > base_type;
