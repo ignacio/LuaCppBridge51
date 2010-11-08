@@ -95,22 +95,24 @@ public:
 		if(lua_isnil(L, -1)) {
 			luaL_error(L, "%s missing metatable", T::className);
 		}
-		int mt = lua_gettop(L);
-		T::subtable(L, mt, "userdata", "v");
+		// stack: metatable
+		int metatable = lua_gettop(L);
+		base_type::subtable(L, metatable, "userdata", "v");
+		// stack: metatable, table userdata
 		userdataType* ud = static_cast<userdataType*>(pushuserdata(L, obj, sizeof(userdataType)));
 		if(ud) {
 			// set up a table as the userdata environment
 			lua_newtable(L);
 			lua_setfenv(L, -2);
 			ud->pT = obj;	// store pointer to object in userdata
-			lua_pushvalue(L, mt);
+			lua_pushvalue(L, metatable);
 			lua_setmetatable(L, -2);	// set metatable for userdata
 			ud->collectable = gc;
 		}
 		// leave userdata on top of the stack
-		lua_replace(L, mt);
-		lua_settop(L, mt);
-		return mt;	// index of userdata containing pointer to T object
+		lua_replace(L, metatable);
+		lua_settop(L, metatable);
+		return metatable;	// index of userdata containing pointer to T object
 	}
 
 	// push onto the Lua stack a userdata containing a pointer to T object. The object is not collectable and is unique (two 
