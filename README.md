@@ -19,4 +19,4 @@ More detailed documentation is available [on the wiki] [6]
 [3]: http://code.google.com/p/oolua/
 [4]: http://lua-users.org/wiki/CppBindingWithLunar
 [5]: http://www.lua.org/notes/ltn005.html
-[6]: http://example.com
+[6]: https://github.com/ignacio/LuaCppBridge51/wiki
