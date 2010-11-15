@@ -135,7 +135,7 @@ private:
 		
 		// store method table in globals so that scripts can add functions written in Lua.
 		lua_pushvalue(L, methods);
-		set(L, whereToRegister, T::className);
+		base_type::set(L, whereToRegister, T::className);
 		
 		// make getmetatable return the methods table
 		lua_pushvalue(L, methods);
