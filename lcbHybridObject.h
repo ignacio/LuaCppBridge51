@@ -187,7 +187,7 @@ protected:
 	initial stack: self (userdata), key
 	*/
 	static int thunk_index(lua_State* L) {
-		T* obj = base_type::check(L, 1);	// get 'self', or if you prefer, 'this'
+		base_type::check(L, 1);	// get 'self', or if you prefer, 'this'
 		lua_getfenv(L, 1);					// stack: userdata, key, userdata_env
 
 		// Look in the userdata's environment
@@ -220,7 +220,7 @@ protected:
 	initial stack: self (userdata), key, value
 	*/
 	static int thunk_newindex (lua_State* L) {
-		T* obj = base_type::check(L, 1);	// get 'self', or if you prefer, 'this'
+		base_type::check(L, 1);	// get 'self', or if you prefer, 'this'
 
 		lua_getfenv(L, 1);					// stack: userdata, key, value, userdata_env
 		lua_replace(L, 1);					// stack: userdata_env, key, value
