@@ -1,5 +1,7 @@
 src/Debug
 src/Release
+Test/Debug
+Test/Release
 *.opt
 *.plg
 *.dsw
@@ -10,3 +12,4 @@ src/Release
 *.positions
 *.suo
 *.opt
+.MySCMServerInfo
