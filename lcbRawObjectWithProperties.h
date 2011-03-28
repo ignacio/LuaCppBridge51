@@ -169,7 +169,7 @@ private:
 		lua_pushcfunction(L, T::tostring_T);
 		base_type::set(L, metatable, "__tostring");
 		
-		lua_pushcfunction(L, base_type::gc_T);
+		lua_pushcfunction(L, T::gc_T);
 		base_type::set(L, metatable, "__gc");
 		
 		if(isCreatableByLua) {
