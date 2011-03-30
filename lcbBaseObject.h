@@ -51,7 +51,7 @@ public:
 	// Deals with calling new, pushing the new object to Lua and if enabled, track the object
 	static T* Construct (lua_State* L, bool gc = false) {
 		T* newObject = new T(L);	// call constructor for T objects
-		int newTable = Base::push(L, newObject, gc); // gc_T will delete this object
+		Base::push(L, newObject, gc); // gc_T will delete this object
 		if(s_trackingEnabled) {
 			newObject->KeepTrack(L);
 		}
