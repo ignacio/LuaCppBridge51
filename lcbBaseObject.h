@@ -505,6 +505,6 @@ bool BaseObject<T, Base>::s_trackingEnabled = false;
 template <typename T, typename Base>
 int BaseObject<T, Base>::s_trackingIndex = LUA_NOREF;
 
-}; // end of the namespace
+} // end of the namespace
 
 #endif

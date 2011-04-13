@@ -67,6 +67,6 @@ inline void foo() {
 	ExposeAsGlobal(NULL);
 }
 
-}; // end of the namespace
+} // end of the namespace
 
 #endif

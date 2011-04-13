@@ -113,6 +113,6 @@ private:
 	}
 };
 
-}; // end of the namespace
+} // end of the namespace
 
 #endif

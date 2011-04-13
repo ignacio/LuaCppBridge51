@@ -314,6 +314,6 @@ public:
 	void PostConstruct (lua_State* L) {};
 };
 
-}; // end of the namespace
+} // end of the namespace
 
 #endif
