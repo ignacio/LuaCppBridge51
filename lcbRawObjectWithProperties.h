@@ -150,7 +150,7 @@ private:
 			lua_settable(L, index);
 		}
 		lua_pushvalue(L, methods);
-		lua_pushcclosure(L, thunk_index, 2);
+		lua_pushcclosure(L, T::thunk_index, 2);
 		lua_settable(L, metatable);
 		
 		lua_pushliteral(L, "__newindex");
@@ -162,7 +162,7 @@ private:
 			lua_settable(L, newindex);
 		}
 		
-		lua_pushcclosure(L, thunk_newindex, 1);
+		lua_pushcclosure(L, T::thunk_newindex, 1);
 		lua_settable(L, metatable);
 		
 		

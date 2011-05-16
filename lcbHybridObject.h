@@ -253,10 +253,10 @@ private:
 			
 		// set __index and __newindex metamethods
 		lua_pushvalue(L, methods);
-		lua_pushcclosure(L, thunk_index, 1);
+		lua_pushcclosure(L, T::thunk_index, 1);
 		base_type::set(L, metatable, "__index");
 
-		lua_pushcfunction(L, thunk_newindex);
+		lua_pushcfunction(L, T::thunk_newindex);
 		base_type::set(L, metatable, "__newindex");
 			
 		lua_pushcfunction(L, T::tostring_T);

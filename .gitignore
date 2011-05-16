@@ -13,3 +13,4 @@ Test/Release
 *.suo
 *.opt
 .MySCMServerInfo
+*.o

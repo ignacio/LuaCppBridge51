@@ -258,7 +258,7 @@ private:
 			lua_settable(L, getters_index);		// getters, "__index", getters
 		}
 		lua_pushvalue(L, methods);				// getters, "__index", getters, methods
-		lua_pushcclosure(L, thunk_index, 2);	// getters, "__index", thunk
+		lua_pushcclosure(L, T::thunk_index, 2);	// getters, "__index", thunk
 		lua_settable(L, metatable);				// getters
 		
 		
@@ -271,7 +271,7 @@ private:
 			lua_settable(L, newindex);					// getters, "__newindex", setters
 		}
 		lua_pushvalue(L, getters_index);				// getters, "__newindex", setters, getters
-		lua_pushcclosure(L, thunk_newindex, 2);			// getters, "__newindex", thunk
+		lua_pushcclosure(L, T::thunk_newindex, 2);			// getters, "__newindex", thunk
 		lua_settable(L, metatable);						// getters
 		lua_pop(L, 1);									// remove the getters table
 		
