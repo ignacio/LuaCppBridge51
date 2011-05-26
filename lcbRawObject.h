@@ -6,7 +6,7 @@
 
 #define LCB_RO_DECLARE_EXPORTABLE(classname) \
 	static const LuaCppBridge::RawObject< classname >::RegType methods[];\
-	static const char* className;
+	static const char* className
 
 // No inheritance here... check() is the culprit...
 

@@ -8,14 +8,14 @@
 	static const LuaCppBridge::RawObjectWithProperties< classname >::RegType methods[];\
 	static const LuaCppBridge::RawObjectWithProperties< classname >::RegType setters[];\
 	static const LuaCppBridge::RawObjectWithProperties< classname >::RegType getters[];\
-	static const char* className;
+	static const char* className
 
 /**
 Some useful macros when defining properties.
 */
-#define LCB_DECL_SETGET(fieldname) int set_##fieldname (lua_State* L); int get_##fieldname (lua_State*L);
-#define LCB_DECL_GET(fieldname) int get_##fieldname (lua_State* L);
-#define LCB_DECL_SET(fieldname) int set_##fieldname (lua_State* L);
+#define LCB_DECL_SETGET(fieldname) int set_##fieldname (lua_State* L); int get_##fieldname (lua_State*L)
+#define LCB_DECL_GET(fieldname) int get_##fieldname (lua_State* L)
+#define LCB_DECL_SET(fieldname) int set_##fieldname (lua_State* L)
 #define LCB_ADD_SET(classname, fieldname) { #fieldname , &classname::set_##fieldname }
 #define LCB_ADD_GET(classname, fieldname) { #fieldname , &classname::get_##fieldname }
 #define LCB_IMPL_SET(classname, fieldname) int classname::set_##fieldname (lua_State* L)
