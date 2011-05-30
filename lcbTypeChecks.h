@@ -5,6 +5,7 @@
 
 #include <lua.hpp>
 #include "lcbException.h"
+#include <string.h>
 
 namespace LuaCppBridge
 {
