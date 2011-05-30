@@ -426,14 +426,14 @@ public:
 	/// Looks for the table (or userdata) associated to a given instance of a class
 	void GetSelf (lua_State* L) {
 		if(!s_trackingEnabled) {
-			return error(L, "class %s is not being tracked", T::className);
+			error(L, "class %s is not being tracked", T::className);
 		}
 		lua_rawgeti(L, LUA_REGISTRYINDEX, s_trackingIndex);
 		lua_assert(lua_istable(L, -1));
 		lua_pushlightuserdata(L, m_selfReference);
 		lua_gettable(L, -2);
 		if(lua_isnil(L, -1)) {
-			return error(L, "'%p' has no bound userdata or table", m_selfReference);
+			error(L, "'%p' has no bound userdata or table", m_selfReference);
 		}
 		lua_remove(L, -2);	// remove the instances table
 		// leave the table or userdata associated with the given instance on top of the stack
