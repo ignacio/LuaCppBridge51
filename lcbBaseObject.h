@@ -173,7 +173,7 @@ public:
 		getmetatable(L, T::className);	// look for the metatable
 		if(lua_isnil(L, -1)) {
 			lua_settop(L, top);	// restore the stack
-			return error(L, "%s missing metatable", T::className);
+			error(L, "%s missing metatable", T::className);
 		}
 		// get the 'userdata' table
 		int mt = lua_gettop(L);
@@ -191,7 +191,7 @@ public:
 		const userdataType* ud = static_cast<userdataType*>(lua_touserdata(L, -1));
 		if(ud->collectable) {
 			lua_settop(L, top);	// restore the stack
-			return error(L, "unpush on a collectable object of type '%s' is forbidden", T::className);
+			error(L, "unpush on a collectable object of type '%s' is forbidden", T::className);
 		}
 		
 		// remove the userdata
@@ -503,7 +503,7 @@ public:
 				lua_pop(L, 1);
 			}
 #endif
-			return error(L, "'%p' has no bound userdata or table", key);
+			error(L, "'%p' has no bound userdata or table", key);
 		}
 		lua_remove(L, -2);	// remove the instances table
 		// leave the table or userdata associated with the given instance on top of the stack
