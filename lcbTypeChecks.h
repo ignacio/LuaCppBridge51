@@ -23,31 +23,31 @@ namespace LuaCppBridge
 		lua_pushvfstring(L, fmt, argp);
 		va_end(argp);
 		lua_concat(L, 2);
-		throw Type_error(L, true); //return lua_error(L);
+		throw Type_error(L, true);
 	}
 
 	UNUSED
 	static int argerror (lua_State *L, int narg, const char *extramsg) {
 		lua_Debug ar;
-		if (!lua_getstack(L, 0, &ar))  /* no stack frame? */
+		if (!lua_getstack(L, 0, &ar)) {  /* no stack frame? */
 			return error(L, "bad argument #%d (%s)", narg, extramsg);
+		}
 		lua_getinfo(L, "n", &ar);
 		if (strcmp(ar.namewhat, "method") == 0) {
 			narg--;  /* do not count `self' */
-			if (narg == 0)  /* error is in the self argument itself? */
-				return error(L, "calling " LUA_QS " on bad self (%s)",
-				ar.name, extramsg);
+			if (narg == 0) { /* error is in the self argument itself? */
+				return error(L, "calling " LUA_QS " on bad self (%s)", ar.name, extramsg);
+			}
 		}
-		if (ar.name == NULL)
+		if (ar.name == NULL) {
 			ar.name = "?";
-		return error(L, "bad argument #%d to " LUA_QS " (%s)",
-			narg, ar.name, extramsg);
+		}
+		return error(L, "bad argument #%d to " LUA_QS " (%s)", narg, ar.name, extramsg);
 	}
 
 	UNUSED
 	static int typerror (lua_State *L, int narg, const char *tname) {
-		const char* msg = lua_pushfstring(L, "%s expected, got %s", tname, 
-			luaL_typename(L, narg));
+		const char* msg = lua_pushfstring(L, "%s expected, got %s", tname, luaL_typename(L, narg));
 		return argerror(L, narg, msg);
 	}
 
@@ -56,29 +56,32 @@ namespace LuaCppBridge
 		static void tag_error (lua_State *L, int narg, int tag) {
 			typerror(L, narg, lua_typename(L, tag));
 		}
-		
 	}
 	
 	UNUSED
 	static const char* checklstring (lua_State *L, int narg, size_t *len) {
 		const char *s = lua_tolstring(L, narg, len);
-		if (!s) detail::tag_error(L, narg, LUA_TSTRING);
+		if (!s) {
+			detail::tag_error(L, narg, LUA_TSTRING);
+		}
 		return s;
 	}
 	
 	UNUSED
 	static lua_Number checknumber (lua_State *L, int narg) {
 		lua_Number d = lua_tonumber(L, narg);
-		if (d == 0 && !lua_isnumber(L, narg))  /* avoid extra test when d is not 0 */
+		if (d == 0 && !lua_isnumber(L, narg)) {  /* avoid extra test when d is not 0 */
 			detail::tag_error(L, narg, LUA_TNUMBER);
+		}
 		return d;
 	}
 	
 	UNUSED
 	static lua_Integer checkinteger (lua_State *L, int narg) {
 		lua_Integer d = lua_tointeger(L, narg);
-		if (d == 0 && !lua_isnumber(L, narg))  /* avoid extra test when d is not 0 */
+		if (d == 0 && !lua_isnumber(L, narg)) { /* avoid extra test when d is not 0 */
 			detail::tag_error(L, narg, LUA_TNUMBER);
+		}
 		return d;
 	}
 	
@@ -89,20 +92,23 @@ namespace LuaCppBridge
 	
 	UNUSED
 	static void checkstack (lua_State *L, int sz, const char *msg) {
-		if (!lua_checkstack(L, sz))
+		if (!lua_checkstack(L, sz)) {
 			error(L, "stack overflow (%s)", msg);
+		}
 	}
 	
 	UNUSED
 	static void checktype (lua_State *L, int narg, int t) {
-		if (lua_type(L, narg) != t)
+		if (lua_type(L, narg) != t) {
 			detail::tag_error(L, narg, t);
+		}
 	}
 	
 	UNUSED
 	static void checkany (lua_State *L, int narg) {
-		if (lua_type(L, narg) == LUA_TNONE)
+		if (lua_type(L, narg) == LUA_TNONE) {
 			argerror(L, narg, "value expected");
+		}
 	}
 	
 	UNUSED
@@ -124,11 +130,12 @@ namespace LuaCppBridge
 	UNUSED
 	static const char* optlstring (lua_State *L, int narg, const char *def, size_t *len) {
 		if (lua_isnoneornil(L, narg)) {
-			if (len)
+			if (len) {
 				*len = (def ? strlen(def) : 0);
+			}
 			return def;
 		}
-		else return checklstring(L, narg, len);
+		return checklstring(L, narg, len);
 	}
 
 	UNUSED
@@ -137,8 +144,7 @@ namespace LuaCppBridge
 	}
 	
 	UNUSED
-	static const char* optstring (lua_State *L, int narg,
-                                        const char *def) {
+	static const char* optstring (lua_State *L, int narg, const char *def) {
 		return optlstring(L, narg, def, NULL);
 	}
 	
@@ -163,13 +169,13 @@ namespace LuaCppBridge
 	}
 	
 	UNUSED
-	static int checkoption (lua_State *L, int narg, const char *def,
-								const char *const lst[]) {
+	static int checkoption (lua_State *L, int narg, const char *def, const char *const lst[]) {
 		const char *name = (def) ? optstring(L, narg, def) : checkstring(L, narg);
 		int i;
 		for (i=0; lst[i]; i++) {
-			if (strcmp(lst[i], name) == 0)
+			if (strcmp(lst[i], name) == 0) {
 				return i;
+			}
 		}
 		return argerror(L, narg, lua_pushfstring(L, "invalid option " LUA_QS, name));
 	}
