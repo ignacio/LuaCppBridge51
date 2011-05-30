@@ -3,6 +3,8 @@
 
 #include <lua.hpp>
 #include "lcbBaseObject.h"
+#include "lcbException.h"
+#include "lcbTypeChecks.h"
 
 #define LCB_HO_DECLARE_EXPORTABLE(classname) \
 	static const LuaCppBridge::HybridObject< classname >::RegType methods[];\
@@ -76,7 +78,7 @@ public:
 		}
 		getmetatable(L, T::className);	// look for the metatable
 		if(lua_isnil(L, -1)) {
-			luaL_error(L, "%s missing metatable", T::className);
+			return error(L, "%s missing metatable", T::className);
 		}
 		// stack: metatable
 		int metatable = lua_gettop(L);
@@ -158,10 +160,10 @@ public:
 	// get userdata from Lua stack and return pointer to T object
 	// this is somewhat permissive, does not check for correct metatable (beware!)
 	static T* check (lua_State* L, int narg) {
-		luaL_checktype(L, narg, LUA_TUSERDATA);
+		checktype(L, narg, LUA_TUSERDATA);
 		T* pT = static_cast<ObjectWrapper*>(lua_touserdata(L, narg))->wrappedObject;
 		if(!pT) {
-			luaL_typerror(L, narg, T::className);
+			typerror(L, narg, T::className);
 		}
 		return pT;	// pointer to T object
 	}
@@ -300,7 +302,7 @@ private:
 			lua_pushliteral(L, "__index");
 			lua_getfield(L, whereToRegister, parentClassName);
 			if(lua_isnil(L, -1)) {
-				luaL_error(L, "class '%s' is not defined", parentClassName);
+				return luaL_error(L, "class %s is not defined", parentClassName);
 			}
 			lua_rawset(L, -3);
 			lua_pop(L, 1);

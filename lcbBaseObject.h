@@ -3,6 +3,8 @@
 
 #include <lua.hpp>
 #include "lcbBridgeConfig.h"
+#include "lcbException.h"
+#include "lcbTypeChecks.h"
 
 #if defined(ENABLE_TRACE)
 	#include <typeinfo>
@@ -64,22 +66,21 @@ public:
 	{
 		int base = lua_gettop(L) - nargs;	// userdata index
 		if(!checkudata(L, base, T::className)) {
-			lua_settop(L, base - 1);		// drop userdata and args
-			luaL_error(L, "not a valid %s userdata", T::className);
-			return -1;
+			lua_settop(L, base - 1);			// drop userdata and args
+			return error(L, "not a valid %s userdata", T::className);
 		}
 		
 		lua_pushstring(L, method);			// method name
-		lua_gettable(L, base);				// get method from userdata
-		if(lua_isnil(L, -1)) {				// no method?
-			lua_settop(L, base - 1);		// drop userdata and args
+		lua_gettable(L, base);					// get method from userdata
+		if(lua_isnil(L, -1)) {						// no method?
+			lua_settop(L, base - 1);			// drop userdata and args
 			//lua_pushfstring(L, "%s missing method '%s'", T::className, method);
 			return -1;
 		}
-		lua_insert(L, base);				// put method under userdata, args
+		lua_insert(L, base);						// put method under userdata, args
 		// now the stack is: method, self, args
 		
-		lua_call(L, 1 + nargs, nresults);	// call method
+		lua_call(L, 1 + nargs, nresults);		// call method
 		return lua_gettop(L) - base + 1;	// number of results
 	}
 	
@@ -88,19 +89,18 @@ public:
 	{
 		int base = lua_gettop(L) - nargs;	// userdata index
 		if(!checkudata(L, base, T::className)) {
-			lua_settop(L, base - 1);		// drop userdata and args
-			luaL_error(L, "not a valid %s userdata", T::className);
-			return -1;
+			lua_settop(L, base - 1);			// drop userdata and args
+			return error(L, "not a valid %s userdata", T::className);
 		}
 		
 		lua_pushstring(L, method);			// method name
-		lua_gettable(L, base);				// get method from userdata
-		if(lua_isnil(L, -1)) {				// no method?
-			lua_settop(L, base - 1);		// drop userdata and args
+		lua_gettable(L, base);					// get method from userdata
+		if(lua_isnil(L, -1)) {						// no method?
+			lua_settop(L, base - 1);			// drop userdata and args
 			//lua_pushfstring(L, "%s missing method '%s'", T::className, method);
 			return -1;
 		}
-		lua_insert(L, base);				// put method under userdata, args
+		lua_insert(L, base);						// put method under userdata, args
 		// so the stack now is: method, self, args
 		
 		int status = lua_pcall(L, 1 + nargs, nresults, errfunc);	// call method
@@ -110,7 +110,7 @@ public:
 				msg = "(error with no message)";
 			}
 			lua_pushfstring(L, "%s:%s status = %d\n%s", T::className, method, status, msg);
-			lua_remove(L, base);			// remove old message
+			lua_remove(L, base);				// remove old message
 			return -1;
 		}
 		return lua_gettop(L) - base + 1;	// number of results
@@ -124,7 +124,7 @@ public:
 		}
 		getmetatable(L, T::className);	// look for the metatable
 		if(lua_isnil(L, -1)) {
-			luaL_error(L, "%s missing metatable", T::className);
+			return error(L, "%s missing metatable", T::className);
 		}
 		int mt = lua_gettop(L);
 		subtable(L, mt, "userdata", "v");
@@ -149,7 +149,7 @@ public:
 		}
 		getmetatable(L, T::className);	// look for the metatable
 		if(lua_isnil(L, -1)) {
-			luaL_error(L, "%s missing metatable", T::className);
+			return (L, "%s missing metatable", T::className);
 		}
 		int mt = lua_gettop(L);
 		userdataType *ud = static_cast<userdataType*>(lua_newuserdata(L, sizeof(userdataType)));	// create new userdata
@@ -173,7 +173,7 @@ public:
 		getmetatable(L, T::className);	// look for the metatable
 		if(lua_isnil(L, -1)) {
 			lua_settop(L, top);	// restore the stack
-			luaL_error(L, "%s missing metatable", T::className);
+			return error(L, "%s missing metatable", T::className);
 		}
 		// get the 'userdata' table
 		int mt = lua_gettop(L);
@@ -191,7 +191,7 @@ public:
 		const userdataType* ud = static_cast<userdataType*>(lua_touserdata(L, -1));
 		if(ud->collectable) {
 			lua_settop(L, top);	// restore the stack
-			luaL_error(L, "unpush on a collectable object of type '%s' is forbidden", T::className);
+			return error(L, "unpush on a collectable object of type '%s' is forbidden", T::className);
 		}
 		
 		// remove the userdata
@@ -214,7 +214,7 @@ public:
 	static T* check (lua_State* L, int narg) {
 		userdataType* ud = static_cast<userdataType*>(checkudata(L, narg, T::className));
 		if(!ud) {
-			luaL_typerror(L, narg, T::className);
+			typerror(L, narg, T::className);
 			return NULL;
 		}
 		return ud->pT;	// pointer to T object
@@ -238,28 +238,39 @@ public:
 
 protected:
 	static int forbidden_new_T (lua_State* L) {
-		luaL_error(L, "Constructing objects of type '%s' is not allowed from the Lua side", T::className);
-		return 1;
+		return luaL_error(L, "Constructing objects of type '%s' is not allowed from the Lua side", T::className);
 	}
 
 	// member function dispatcher
 	static int thunk_methods (lua_State* L) {
-		// stack has userdata, followed by method args
-		T* obj = Base::check(L, 1);	// get 'self', or if you prefer, 'this'
-		// get member function from upvalue
-		RegType* l = static_cast<RegType*>(lua_touserdata(L, lua_upvalueindex(1)));
-		return (obj->*(l->mfunc))(L);	// call member function
+		try {
+			// stack has userdata, followed by method args
+			T* obj = Base::check(L, 1);	// get 'self', or if you prefer, 'this'
+			// get member function from upvalue
+			RegType* l = static_cast<RegType*>(lua_touserdata(L, lua_upvalueindex(1)));
+			return (obj->*(l->mfunc))(L);	// call member function
+		}
+		catch(std::exception& e) {
+			lua_pushstring(L, e.what());
+		}
+		return lua_error(L);
 	}
 	
 	// create a new T object and push onto the Lua stack a userdata containing a pointer to T object
 	static int new_T (lua_State* L) {
-		lua_remove(L, 1);	// use classname:new(), instead of classname.new()
-		T* obj = new T(L);	// call constructor for T objects
-		push(L, obj, true);	// gc_T will delete this object
-		if(s_trackingEnabled) {
-			obj->KeepTrack(L);
+		try {
+			lua_remove(L, 1);	// use classname:new(), instead of classname.new()
+			T* obj = new T(L);	// call constructor for T objects
+			push(L, obj, true);	// gc_T will delete this object
+			if(s_trackingEnabled) {
+				obj->KeepTrack(L);
+			}
+			return 1;			// userdata containing pointer to T object
 		}
-		return 1;			// userdata containing pointer to T object
+		catch(std::exception& e) {
+			lua_pushstring(L, e.what());
+		}
+		return lua_error(L);
 	}
 
 	// garbage collection metamethod, comes with the userdata on top of the stack
@@ -386,7 +397,7 @@ protected:
 				}
 			}
 		}
-		luaL_typerror(L, ud, key);	/* else error */
+		typerror(L, ud, key);	/* else error */
 		return NULL;	/* to avoid warnings */
 	}
 
@@ -415,14 +426,14 @@ public:
 	/// Looks for the table (or userdata) associated to a given instance of a class
 	void GetSelf (lua_State* L) {
 		if(!s_trackingEnabled) {
-			luaL_error(L, "class %s is not being tracked", T::className);
+			return error(L, "class %s is not being tracked", T::className);
 		}
 		lua_rawgeti(L, LUA_REGISTRYINDEX, s_trackingIndex);
 		lua_assert(lua_istable(L, -1));
 		lua_pushlightuserdata(L, m_selfReference);
 		lua_gettable(L, -2);
 		if(lua_isnil(L, -1)) {
-			luaL_error(L, "'%p' has no bound userdata or table", m_selfReference);
+			return error(L, "'%p' has no bound userdata or table", m_selfReference);
 		}
 		lua_remove(L, -2);	// remove the instances table
 		// leave the table or userdata associated with the given instance on top of the stack
@@ -492,7 +503,7 @@ public:
 				lua_pop(L, 1);
 			}
 #endif
-			luaL_error(L, "'%p' has no bound userdata or table", key);
+			return error(L, "'%p' has no bound userdata or table", key);
 		}
 		lua_remove(L, -2);	// remove the instances table
 		// leave the table or userdata associated with the given instance on top of the stack

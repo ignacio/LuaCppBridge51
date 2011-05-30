@@ -3,6 +3,8 @@
 
 #include <lua.hpp>
 #include "lcbBaseObject.h"
+#include "lcbException.h"
+#include "lcbTypeChecks.h"
 
 #define LCB_HOWP_DECLARE_EXPORTABLE(classname) \
 	static const LuaCppBridge::HybridObjectWithProperties< classname >::RegType methods[];\
@@ -93,7 +95,7 @@ public:
 		}
 		getmetatable(L, T::className);	// look for the metatable
 		if(lua_isnil(L, -1)) {
-			luaL_error(L, "%s missing metatable", T::className);
+			return error(L, "%s missing metatable", T::className);
 		}
 		// stack: metatable
 		int metatable = lua_gettop(L);
@@ -124,7 +126,7 @@ public:
 		}
 		getmetatable(L, T::className);	// look for the metatable
 		if(lua_isnil(L, -1)) {
-			luaL_error(L, "%s missing metatable", T::className);
+			return error(L, "%s missing metatable", T::className);
 		}
 		int mt = lua_gettop(L);
 		userdataType* ud = static_cast<userdataType*>(lua_newuserdata(L, sizeof(userdataType)));	// create new userdata
@@ -150,44 +152,50 @@ protected:
 	initial stack: self (userdata), key
 	*/
 	static int thunk_index(lua_State* L) {
-		T* obj = base_type::check(L, 1);	// get 'self', or if you prefer, 'this'
-		lua_getfenv(L, 1);					// stack: userdata, key, userdata_env
+		try {
+			T* obj = base_type::check(L, 1);	// get 'self', or if you prefer, 'this'
+			lua_getfenv(L, 1);					// stack: userdata, key, userdata_env
 
-		// Look in the userdata's environment
-		lua_pushvalue(L, 2);				// stack: userdata, key, userdata_env, key
-		lua_rawget(L, 3);
-		if(!lua_isnil(L, -1)) {
-			// found something, return it
-			return 1;
-		}
-		lua_pop(L, 2);					// stack: userdata, key
-
-		// Look in getters table
-		lua_pushvalue(L, 2);			// stack: userdata, key, key
-		lua_rawget(L, lua_upvalueindex(1));
-		if(!lua_isnil(L, -1)) {			// found a property
-			// stack: userdata, key, getter (RegType*)
-			RegType* l = static_cast<RegType*>(lua_touserdata(L, -1));
-			lua_settop(L, 1);
-			return (obj->*(l->mfunc))(L);  // call member function
-		}
-		else {
-			lua_pop(L, 1);				// stack: userdata, key
-			lua_pushvalue(L, 2);		// stack: userdata, key, key
-			
-			// not a property, look for a method up the inheritance hierarchy
-			lua_gettable(L, lua_upvalueindex(2));
+			// Look in the userdata's environment
+			lua_pushvalue(L, 2);				// stack: userdata, key, userdata_env, key
+			lua_rawget(L, 3);
 			if(!lua_isnil(L, -1)) {
-				// found the method, return it
+				// found something, return it
 				return 1;
+			}
+			lua_pop(L, 2);					// stack: userdata, key
+
+			// Look in getters table
+			lua_pushvalue(L, 2);			// stack: userdata, key, key
+			lua_rawget(L, lua_upvalueindex(1));
+			if(!lua_isnil(L, -1)) {			// found a property
+				// stack: userdata, key, getter (RegType*)
+				RegType* l = static_cast<RegType*>(lua_touserdata(L, -1));
+				lua_settop(L, 1);
+				return (obj->*(l->mfunc))(L);  // call member function
 			}
 			else {
-				// nothing was found
-				lua_pushnil(L);
-				return 1;
+				lua_pop(L, 1);				// stack: userdata, key
+				lua_pushvalue(L, 2);		// stack: userdata, key, key
+				
+				// not a property, look for a method up the inheritance hierarchy
+				lua_gettable(L, lua_upvalueindex(2));
+				if(!lua_isnil(L, -1)) {
+					// found the method, return it
+					return 1;
+				}
+				else {
+					// nothing was found
+					lua_pushnil(L);
+					return 1;
+				}
 			}
+			return 0;
 		}
-		return 0;
+		catch(std::exception& e) {
+			lua_pushstring(L, e.what());
+		}
+		return lua_error(L);
 	}
 	
 	/**
@@ -196,34 +204,40 @@ protected:
 	initial stack: self (userdata), key, value
 	*/
 	static int thunk_newindex (lua_State* L) {
-		T* obj = base_type::check(L, 1);	// get 'self', or if you prefer, 'this'
+		try {
+			T* obj = base_type::check(L, 1);	// get 'self', or if you prefer, 'this'
 
-		// look if there is a setter for 'key'
-		lua_pushvalue(L, 2);				// stack: userdata, key, value, key
-		lua_rawget(L, lua_upvalueindex(1));
-		if(!lua_isnil(L, -1)) {
-											// stack: userdata, key, value, setter
-			RegType* p = static_cast<RegType*>(lua_touserdata(L, -1));
-			lua_pop(L, 1);					// stack: userdata, key, value
-			return (obj->*(p->mfunc))(L);	// call member function
-		}
-		else {
-			// there is no setter. If there is a getter, then this property is read only.
-											// stack: userdata, key, value, nil
-			lua_pop(L, 1);					// stack: userdata, key, value
-			lua_pushvalue(L, 2);			// stack: userdata, key, value, key
-			lua_rawget(L, lua_upvalueindex(2));	// stack: userdata, key, value, getter?
+			// look if there is a setter for 'key'
+			lua_pushvalue(L, 2);				// stack: userdata, key, value, key
+			lua_rawget(L, lua_upvalueindex(1));
 			if(!lua_isnil(L, -1)) {
-				lua_pop(L, 1);
-				return luaL_error(L, "trying to write to read only property '%s'", lua_tostring(L, 2));
+												// stack: userdata, key, value, setter
+				RegType* p = static_cast<RegType*>(lua_touserdata(L, -1));
+				lua_pop(L, 1);					// stack: userdata, key, value
+				return (obj->*(p->mfunc))(L);	// call member function
 			}
-			// sets 'value' in the environment
-			lua_pop(L, 1);					// stack: userdata, key, value
-			lua_getfenv(L, 1);				// stack: userdata, key, value, userdata_env
-			lua_replace(L, 1);				// stack: userdata_env, key, value
-			lua_rawset(L, 1);
+			else {
+				// there is no setter. If there is a getter, then this property is read only.
+												// stack: userdata, key, value, nil
+				lua_pop(L, 1);					// stack: userdata, key, value
+				lua_pushvalue(L, 2);			// stack: userdata, key, value, key
+				lua_rawget(L, lua_upvalueindex(2));	// stack: userdata, key, value, getter?
+				if(!lua_isnil(L, -1)) {
+					lua_pop(L, 1);
+					return error(L, "trying to write to read only property '%s'", lua_tostring(L, 2));
+				}
+				// sets 'value' in the environment
+				lua_pop(L, 1);					// stack: userdata, key, value
+				lua_getfenv(L, 1);				// stack: userdata, key, value, userdata_env
+				lua_replace(L, 1);				// stack: userdata_env, key, value
+				lua_rawset(L, 1);
+			}
+			return 0;
 		}
-		return 0;
+		catch(std::exception& e) {
+			lua_pushstring(L, e.what());
+		}
+		return lua_error(L);
 	}
 
 private:
@@ -248,9 +262,9 @@ private:
 		lua_setfield(L, metatable, "__metatable");
 		
 		// lunar mio
-		lua_newtable(L);						// getters, "__index"
+		lua_newtable(L);								// getters, "__index"
 		int getters_index = lua_gettop(L);
-		lua_pushliteral(L, "__index");			// getters, "__index"
+		lua_pushliteral(L, "__index");				// getters, "__index"
 		lua_pushvalue(L, getters_index);		// getters, "__index", getters
 		for(const RegType* l = T::getters; l->name; l++) {
 			lua_pushstring(L, l->name);			// getters, "__index", getters, name

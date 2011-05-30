@@ -3,6 +3,8 @@
 
 #include <lua.hpp>
 #include "lcbBaseObject.h"
+#include "lcbException.h"
+#include "lcbTypeChecks.h"
 
 #define LCB_ROWP_DECLARE_EXPORTABLE(classname) \
 	static const LuaCppBridge::RawObjectWithProperties< classname >::RegType methods[];\
@@ -64,60 +66,72 @@ protected:
 	*/
 	static int thunk_index (lua_State* L) {
 		// stack: userdata, key
-		T* obj = base_type::check(L, 1); 	// get 'self', or if you prefer, 'this'
-		lua_pushvalue(L, 2);				// stack: userdata, key key
-		lua_rawget(L, lua_upvalueindex(1));	// upvalue 1 = getters table
-		if(lua_isnil(L, -1)) {				// not a property, look for a method
-			lua_pop(L, 1);					// stack: userdata, key (arguments??)
-			lua_pushvalue(L, 2);			// userdata, key, argumentos ... key
-			lua_rawget(L, lua_upvalueindex(2));
-			if(!lua_isnil(L, -1)) {
-				// leave the thunk on the stack so Lua will call it
-				return 1;
+		try {
+			T* obj = base_type::check(L, 1); 	// get 'self', or if you prefer, 'this'
+			lua_pushvalue(L, 2);				// stack: userdata, key key
+			lua_rawget(L, lua_upvalueindex(1));	// upvalue 1 = getters table
+			if(lua_isnil(L, -1)) {				// not a property, look for a method
+				lua_pop(L, 1);					// stack: userdata, key (arguments??)
+				lua_pushvalue(L, 2);			// userdata, key, argumentos ... key
+				lua_rawget(L, lua_upvalueindex(2));
+				if(!lua_isnil(L, -1)) {
+					// leave the thunk on the stack so Lua will call it
+					return 1;
+				}
+				else {
+					lua_pop(L, 1);
+					// I should keep looking up in the parent's metatable, (if I'm inheriting something) but I don't know how its done
+					// Issue an error
+					error(L, "__index: the value '%s' does not exist", lua_tostring(L, 2));
+					return 1; // shut up the compiler
+				}
 			}
 			else {
-				lua_pop(L, 1);
-				// I should keep looking up in the parent's metatable, (if I'm inheriting something) but I don't know how its done
-				// Issue an error
-				luaL_error(L, "__index: the value '%s' does not exist", lua_tostring(L, 2));
-				return 1; // shut up the compiler
+				// stack: userdata, key, getter (RegType*)
+				RegType* l = static_cast<RegType*>(lua_touserdata(L, -1));
+				lua_settop(L, 1);
+				return (obj->*(l->mfunc))(L);	// call member function
 			}
+			return 0;
 		}
-		else {
-			// stack: userdata, key, getter (RegType*)
-			RegType* l = static_cast<RegType*>(lua_touserdata(L, -1));
-			lua_settop(L, 1);
-			return (obj->*(l->mfunc))(L);	// call member function
+		catch(std::exception& e) {
+			lua_pushstring(L, e.what());
 		}
-		return 0;
+		return lua_error(L);
 	}
 	
 	static int thunk_newindex (lua_State* L) {
-		// stack: userdata, key, value
-		T* obj = base_type::check(L, 1);	// get 'self', or if you prefer, 'this'
-		lua_pushvalue(L, 2);				// stack: userdata, key, value, key
-		lua_rawget(L, lua_upvalueindex(1));	// upvalue 1 = setters table
-		if(!lua_isnil(L, -1)) {
-											// stack: userdata, key, value, setter
-			RegType* p = static_cast<RegType*>(lua_touserdata(L, -1));
-			lua_pop(L, 1);					// stack: userdata, key, value
-			return (obj->*(p->mfunc))(L);	// call member function
-		}
-		else {
-			luaL_error(L, "__newindex: el valor '%s' no existe", lua_tostring(L, 2));
-			/*// Esto es opcional. Si lo dejo, le puedo agregar funciones
-			// a un objeto trabajando sobre una instancia, sino tengo que agregarlas
-			// a la clase
-			if(lua_type(L, 3) == LUA_TFUNCTION) {
-				lua_pop(L, 1);	// stack: userdata, clave, valor
-				lua_rawset(L, lua_upvalueindex(2));
+		try {
+			// stack: userdata, key, value
+			T* obj = base_type::check(L, 1);	// get 'self', or if you prefer, 'this'
+			lua_pushvalue(L, 2);				// stack: userdata, key, value, key
+			lua_rawget(L, lua_upvalueindex(1));	// upvalue 1 = setters table
+			if(!lua_isnil(L, -1)) {
+												// stack: userdata, key, value, setter
+				RegType* p = static_cast<RegType*>(lua_touserdata(L, -1));
+				lua_pop(L, 1);					// stack: userdata, key, value
+				return (obj->*(p->mfunc))(L);	// call member function
 			}
 			else {
-				lua_pop(L, 1);	// stack: userdata, clave, valor
-				lua_rawset(L, lua_upvalueindex(2));
-			}*/
+				error(L, "__newindex: el valor '%s' no existe", lua_tostring(L, 2));
+				/*// Esto es opcional. Si lo dejo, le puedo agregar funciones
+				// a un objeto trabajando sobre una instancia, sino tengo que agregarlas
+				// a la clase
+				if(lua_type(L, 3) == LUA_TFUNCTION) {
+					lua_pop(L, 1);	// stack: userdata, clave, valor
+					lua_rawset(L, lua_upvalueindex(2));
+				}
+				else {
+					lua_pop(L, 1);	// stack: userdata, clave, valor
+					lua_rawset(L, lua_upvalueindex(2));
+				}*/
+			}
+			return 0;
 		}
-		return 0;
+		catch(std::exception& e) {
+			lua_pushstring(L, e.what());
+		}
+		return lua_error(L);
 	}
 
 private:

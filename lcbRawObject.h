@@ -3,6 +3,7 @@
 
 #include <lua.hpp>
 #include "lcbBaseObject.h"
+#include "lcbException.h"
 
 #define LCB_RO_DECLARE_EXPORTABLE(classname) \
 	static const LuaCppBridge::RawObject< classname >::RegType methods[];\
