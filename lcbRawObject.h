@@ -25,7 +25,7 @@ is not what it is expecting and fails. So, we could:
 */
 
 
-template <typename T> class RawObject : public BaseObject<T, RawObject<T> > {
+template <typename T, bool is_disposable = false> class RawObject : public BaseObject<T, RawObject<T> > {
 private:
 	typedef BaseObject<T, RawObject<T> > base_type;
 public:
@@ -107,6 +107,11 @@ private:
 			lua_pushlightuserdata(L, (void*)l);
 			lua_pushcclosure(L, base_type::thunk_methods, 1);
 			lua_settable(L, methods);
+		}
+
+		if(isCreatableByLua && is_disposable) {
+			lua_pushcfunction(L, T::dispose_T);
+			base_type::set(L, methods, "dispose");
 		}
 		
 		lua_pop(L, 2);	// drop metatable and method table

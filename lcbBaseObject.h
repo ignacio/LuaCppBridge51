@@ -299,6 +299,26 @@ protected:
 		return 1;
 	}
 
+	static int dispose_T (lua_State* L)
+	{
+		userdataType* ud = static_cast<userdataType*>(lua_touserdata(L, 1));
+		if(!ud->collectable) {
+			return luaL_error(L, "Disposing uncollectable objects of type '%s' is forbidden from the Lua side", T::className);
+		}
+		T* obj = ud->pT;
+		if(s_trackingEnabled) {
+			lua_rawgeti(L, LUA_REGISTRYINDEX, s_trackingIndex);			// stack-> self, instances
+			lua_pushlightuserdata(L, obj->m_selfReference);	 			// remove the reference from the registry
+			lua_pushnil(L);
+			lua_settable(L, -3);										// registry[m_selfReference] = nil
+			lua_pop(L, 1);												// stack-> self
+		}
+		// Delete it and mark it as not collectable
+		gc_T(L);
+		ud->collectable = false;
+		return 0;
+	}
+
 	static void set (lua_State* L, int table_index, const char* key) {
 		lua_pushstring(L, key);
 		lua_insert(L, -2);	// swap value and key
