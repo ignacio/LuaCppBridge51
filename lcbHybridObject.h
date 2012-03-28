@@ -8,7 +8,7 @@
 
 #define LCB_HO_DECLARE_EXPORTABLE(classname) \
 	static const LuaCppBridge::HybridObject< classname >::RegType methods[];\
-	static const char* className;
+	static const char* className
 
 namespace LuaCppBridge {
 
