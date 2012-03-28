@@ -16,7 +16,7 @@ namespace LuaCppBridge {
 An HybridObject is a C++ class whose instances are exposed to Lua as tables. It differs from RawObject 
 in that additional methods and members can be added dynamically to its instances.
 */
-template <typename T> class HybridObject : public BaseObject<T, HybridObject<T> > {
+template <typename T, bool is_disposable = false> class HybridObject : public BaseObject<T, HybridObject<T> > {
 private:
 	typedef BaseObject<T, HybridObject<T> > base_type;
 public:
@@ -306,6 +306,11 @@ private:
 			}
 			lua_rawset(L, -3);
 			lua_pop(L, 1);
+		}
+
+		if(isCreatableByLua && is_disposable) {
+			lua_pushcfunction(L, T::dispose_T);
+			base_type::set(L, methods, "dispose");
 		}
 		
 		lua_pop(L, 2);	// drop metatable and method table

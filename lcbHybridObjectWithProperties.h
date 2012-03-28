@@ -38,7 +38,8 @@ For instance, if a property has only a getter method, then it is read-only. Any 
 TO DO:
 Inheritance won't work with this class. I couldn't make it see its parent's properties, so I disabled the whole thing.
 */
-template <typename T> class HybridObjectWithProperties : public BaseObject<T, HybridObjectWithProperties<T> > {
+template <typename T, bool is_disposable = false> 
+class HybridObjectWithProperties : public BaseObject<T, HybridObjectWithProperties<T> > {
 private:
 	typedef BaseObject<T, HybridObjectWithProperties<T> > base_type;
 public:
@@ -320,6 +321,11 @@ private:
 			lua_pushlightuserdata(L, (void*)method);
 			lua_pushcclosure(L, base_type::thunk_methods, 1);
 			lua_settable(L, methods);
+		}
+
+		if(isCreatableByLua && is_disposable) {
+			lua_pushcfunction(L, T::dispose_T);
+			base_type::set(L, methods, "dispose");
 		}
 		
 		lua_pop(L, 2);	// drop metatable and method table

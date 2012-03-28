@@ -33,7 +33,8 @@ Also, properties can be defined with setters and getters for each.
 TO DO:
 Inheritance won't work with this class. I couldn't make it see its parent's properties, so I disabled the whole thing.
 */
-template <typename T> class RawObjectWithProperties : public BaseObject<T, RawObjectWithProperties<T> > {
+template <typename T, bool is_disposable = false> 
+class RawObjectWithProperties : public BaseObject<T, RawObjectWithProperties<T> > {
 private:
 	typedef BaseObject<T, RawObjectWithProperties<T> > base_type;
 public:
@@ -211,6 +212,11 @@ private:
 			lua_pushlightuserdata(L, (void*)l);
 			lua_pushcclosure(L, base_type::thunk_methods, 1);
 			lua_settable(L, methods);
+		}
+
+		if(isCreatableByLua && is_disposable) {
+			lua_pushcfunction(L, T::dispose_T);
+			base_type::set(L, methods, "dispose");
 		}
 		
 		lua_pop(L, 2);	// drop metatable and method table
