@@ -76,7 +76,7 @@ public:
 			lua_pushnil(L);
 			return 0;
 		}
-		getmetatable(L, T::className);	// look for the metatable
+		HybridObject::getmetatable(L, T::className);	// look for the metatable
 		if(lua_isnil(L, -1)) {
 			return error(L, "%s missing metatable", T::className);
 		}
@@ -242,7 +242,7 @@ private:
 		lua_newtable(L);
 		int methods = lua_gettop(L);
 			
-		newmetatable(L, T::className);
+		HybridObject::newmetatable(L, T::className);
 		int metatable = lua_gettop(L);
 			
 		// store method table in module so that scripts can add functions written in Lua.

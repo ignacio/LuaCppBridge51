@@ -145,7 +145,7 @@ private:
 		lua_newtable(L);
 		int methods = lua_gettop(L);
 		
-		newmetatable(L, T::className);
+		RawObjectWithProperties::newmetatable(L, T::className);
 		int metatable = lua_gettop(L);
 		
 		// store method table in globals so that scripts can add functions written in Lua.
