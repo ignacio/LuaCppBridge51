@@ -94,7 +94,7 @@ public:
 			lua_pushnil(L);
 			return 0;
 		}
-		HybridObjectWithProperties::getmetatable(L, T::className);	// look for the metatable
+		base_type::getmetatable(L, T::className);	// look for the metatable
 		if(lua_isnil(L, -1)) {
 			return error(L, "%s missing metatable", T::className);
 		}
@@ -102,7 +102,7 @@ public:
 		int metatable = lua_gettop(L);
 		base_type::subtable(L, metatable, "userdata", "v");
 		// stack: metatable, table userdata
-		userdataType* ud = static_cast<userdataType*>(HybridObjectWithProperties::pushuserdata(L, obj, sizeof(userdataType)));
+		userdataType* ud = static_cast<userdataType*>(base_type::pushuserdata(L, obj, sizeof(userdataType)));
 		if(ud) {
 			// set up a table as the userdata environment
 			lua_newtable(L);
@@ -125,7 +125,7 @@ public:
 			lua_pushnil(L);
 			return 0;
 		}
-		HybridObjectWithProperties::getmetatable(L, T::className);	// look for the metatable
+		base_type::getmetatable(L, T::className);	// look for the metatable
 		if(lua_isnil(L, -1)) {
 			return error(L, "%s missing metatable", T::className);
 		}
@@ -251,7 +251,7 @@ private:
 		lua_newtable(L);
 		int methods = lua_gettop(L);
 		
-		RawObjectWithProperties::newmetatable(L, T::className);
+		base_type::newmetatable(L, T::className);
 		int metatable = lua_gettop(L);
 		
 		// store method table in globals so that scripts can add functions written in Lua.
