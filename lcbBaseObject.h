@@ -149,7 +149,7 @@ public:
 		}
 		getmetatable(L, T::className);	// look for the metatable
 		if(lua_isnil(L, -1)) {
-			return (L, "%s missing metatable", T::className);
+			return error(L, "%s missing metatable", T::className);
 		}
 		int mt = lua_gettop(L);
 		userdataType *ud = static_cast<userdataType*>(lua_newuserdata(L, sizeof(userdataType)));	// create new userdata
