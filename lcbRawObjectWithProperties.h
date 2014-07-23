@@ -185,6 +185,9 @@ private:
 		
 		lua_pushcfunction(L, T::gc_T);
 		base_type::set(L, metatable, "__gc");
+
+		lua_pushstring(L, T::className);
+		base_type::set(L, metatable, "__name");
 		
 		if(isCreatableByLua) {
 			// Make Classname() and Classname:new() construct an instance of this class

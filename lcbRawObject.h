@@ -79,6 +79,9 @@ private:
 		lua_pushliteral(L, "__gc");
 		lua_pushcfunction(L, T::gc_T);
 		lua_settable(L, metatable);
+
+		lua_pushstring(L, T::className);
+		lua_setfield(L, metatable, "__name");
 		
 		if(isCreatableByLua) {
 			// Make Classname() and Classname:new() construct an instance of this class
